@@ -72,19 +72,20 @@ AppsFlyer 的事件上报与启动阶段的深链结果读取互不绑定。`/sy
 2. `resolveDeferredJumpAction()`
    如果本地没有 `openUrl.jumped=1`，且存在 `openUrl.deferredJump`，说明已有静默计时任务，直接进入内部入口，不重复请求 `/system/getOpenUrl`。
 
-3. `resolveOpenUrlAction()`
-   没有待处理静默任务时，请求 `/system/getOpenUrl`。
+3. `resolveNewDeferredJumpAction()`
+   `checkTime > 0` 时，按 init 返回的剪贴板开关和归因剪贴板兜底配置读取一次系统剪贴板，并采集当前 AF direct deep link，保存倒计时任务后进入内部入口；启动阶段不请求 `/system/getOpenUrl`。普通剪贴板开启时使用原始快照并忽略 AF 剪贴板兜底；AF 兜底只解析同一份原始快照，不会额外读取系统剪贴板。
 
-4. `resolveOpenUrlDecision()`
+4. `resolveOpenUrlAction()` / `resolveOpenUrlDecision()`
    根据后端 getOpenUrl 结果生成 action：
 
-   - 已有 `openUrl.jumped=1`：只要 `targetUrl` 和 `linkType` 有效，直接跳转，不再判断 `isOpen`。
-   - `checkTime > 0` 且未到触发时间：保存静默计时任务，进入内部入口。
-   - `checkTime > 0` 且已到触发时间：只有 `isOpen=1`、`targetUrl` 有效、`linkType` 支持时才跳转。
+   - 已有 `openUrl.jumped=1`：请求优先复用已缓存的 AF 参数，否则使用剪贴板快照；只要 `targetUrl` 和 `linkType` 有效，直接跳转，不再判断 `isOpen`。
    - `checkTime <= 0`：只有 `isOpen=1`、`targetUrl` 有效、`linkType` 支持时才立即跳转。
    - 其他情况：进入内部入口。
 
-5. `executeBootstrapAction()`
+5. 根布局静默任务执行
+   到点后请求 `/system/getOpenUrl`；请求优先使用最新 AF deep link，其次使用静默任务中保存的 AF 快照。若 init 开启普通剪贴板读取，则使用启动时缓存的普通剪贴板内容且忽略 AF 剪贴板兜底；否则可使用启动时解析出的 AF 剪贴板兜底参数。返回可跳转结果时优先跳转；返回不可跳转结果时再按响应 `abTest` 切换内部入口。正常返回但不跳转时清除倒计时任务、保留剪贴板快照；请求失败时同样保留任务和快照等待下次前台重试。
+
+6. `executeBootstrapAction()`
    执行 action：
 
    - `internal_entry`：进入 `DEFAULT_ENTRY_ROUTE` 指定的默认入口，或 AB Test 模块入口。
@@ -171,9 +172,8 @@ export const resolveBootstrapAction = async (context) => {
 
 - `openUrl.jumped`：已发生过 openUrl 跳转的本地标记。
 - `openUrl.deferredJump`：静默计时任务。
-- `openUrl.clipboardContentCache`：确定跳转后缓存的剪贴板内容。
+- `openUrl.clipboardSnapshot`：未跳转时每次启动更新、已跳转后复用的剪贴板快照；其中显式区分“已读取但为空”和“未读取”。
 - `openUrl.ruleConfigCache`：确定跳转后缓存的后端跳转规则配置快照；后续请求 `/system/getOpenUrl` 时会按后端协议字段 `clipboardConfig` 原样带回。
 - `openUrl.attributionDeepLinkParamsCache`：确定跳转后缓存的归因 deep link 参数。
-- `openUrl.attributionClipboardFallbackPending`：归因 deep link 不可用时的剪贴板 JSON 兜底任务。
 
 这些状态由 `src/services/openUrlJump.js` 统一维护，启动策略只通过该模块提供的操作读取或写入。

@@ -55,11 +55,6 @@ function isRetryableLoadError(nativeEvent) {
     return RETRYABLE_LOAD_ERROR_CODES.has(Number(nativeEvent?.code));
 }
 
-function logWebViewDebug(enabled, eventName, payload) {
-    if (!enabled) return;
-    debugLogger.warn(eventName, payload);
-}
-
 export default function WebViewScreen() {
     // expo-router splits unencoded `&` in the inner URL into top-level route params.
     // e.g. `/webview?url=https://h5.com?XSafeTopStatus=1&XSafeBottomStatus=1`
@@ -107,7 +102,7 @@ export default function WebViewScreen() {
 
     const injectDebugPanel = useCallback(() => {
         if (!debugPanelScriptUrl) {
-            logWebViewDebug(webViewDebug, 'debugPanelSkipped', {
+            debugLogger.warn('debugPanelSkipped', {
                 reason: 'invalid_script_url',
             });
             return;
@@ -117,7 +112,7 @@ export default function WebViewScreen() {
             ? buildVConsoleDebugPanel(debugPanelScriptUrl, cleanUrl)
             : buildErudaDebugPanel(debugPanelScriptUrl, cleanUrl);
         webViewRef.current?.injectJavaScript(debugPanelSource);
-    }, [cleanUrl, debugPanelScriptUrl, debugPanelType, webViewDebug]);
+    }, [cleanUrl, debugPanelScriptUrl, debugPanelType]);
 
     const removeDebugPanel = useCallback(() => {
         webViewRef.current?.injectJavaScript(buildDebugPanelRemoval());
@@ -232,7 +227,7 @@ export default function WebViewScreen() {
             injectedJavaScriptBeforeContentLoaded={vpNativeBridgeSource}
             webviewDebuggingEnabled={webViewDebug}
             onLoadStart={(event) => {
-                logWebViewDebug(webViewDebug, 'loadStart', {
+                debugLogger.info('loadStart', {
                     url: event.nativeEvent?.url,
                 });
                 if (!initialLoadDoneRef.current) {
@@ -241,7 +236,7 @@ export default function WebViewScreen() {
                 }
             }}
             onLoadEnd={(event) => {
-                logWebViewDebug(webViewDebug, 'loadEnd', {
+                debugLogger.info('loadEnd', {
                     url: event.nativeEvent?.url,
                 });
                 if (webViewDebug) {
@@ -256,7 +251,7 @@ export default function WebViewScreen() {
                 }
             }}
             onError={(event) => {
-                logWebViewDebug(webViewDebug, 'error', event.nativeEvent);
+                debugLogger.warn('error', event.nativeEvent);
                 if (!initialLoadDoneRef.current) {
                     setShowInitOverlay(false);
                     setShowLoadError(isRetryableLoadError(event.nativeEvent));
@@ -264,7 +259,7 @@ export default function WebViewScreen() {
                 }
             }}
             onHttpError={(event) => {
-                logWebViewDebug(webViewDebug, 'httpError', event.nativeEvent);
+                debugLogger.warn('httpError', event.nativeEvent);
                 if (!initialLoadDoneRef.current) {
                     setShowInitOverlay(false);
                     setShowLoadError(false);
@@ -272,7 +267,7 @@ export default function WebViewScreen() {
                 }
             }}
             onNavigationStateChange={(navState) => {
-                logWebViewDebug(webViewDebug, 'navigationStateChange', {
+                debugLogger.info('navigationStateChange', {
                     url: navState.url,
                     title: navState.title,
                     loading: navState.loading,

@@ -387,94 +387,104 @@ const start = (config, context) => {
     return startTask;
 };
 
+const waitForCurrentOpenUrlDeepLinkParams = async (config, context) => {
+    const openUrlDeepLinkWaitMs = config.openUrlDeepLinkWaitMs;
+    if (openUrlDeepLinkWaitMs === 0) {
+        appsFlyerLogger.info('openUrl attribution wait skipped by config', {
+            decisionId: openUrlDecisionId,
+        });
+        return null;
+    }
+
+    await start(config, context);
+
+    const deadlineAt = Date.now() + openUrlDeepLinkWaitMs;
+    appsFlyerLogger.info('openUrl attribution wait start', {
+        decisionId: openUrlDecisionId,
+        waitMs: openUrlDeepLinkWaitMs,
+        hasDeepLinkCallback: readCurrentDecisionPayload(latestDeepLink) !== null,
+        hasInstallConversionCallback: readCurrentDecisionPayload(latestInstallConversion) !== null,
+    });
+    while (Date.now() <= deadlineAt) {
+        const deepLink = readCurrentDecisionPayload(latestDeepLink);
+        const installConversion = readCurrentDecisionPayload(latestInstallConversion);
+        const deepLinkParams = readDeepLinkParams(deepLink);
+        if (deepLinkParams) {
+            appsFlyerLogger.info('deep link params ready', {
+                decisionId: openUrlDecisionId,
+                source: 'deep_link',
+                keys: Object.keys(deepLinkParams.urlParams),
+            });
+            return deepLinkParams;
+        }
+
+        if (deepLink && !waitForInstallConversion) {
+            appsFlyerLogger.info('openUrl deep link unavailable for existing install', {
+                decisionId: openUrlDecisionId,
+                deepLinkStatus: deepLink?.deepLinkStatus,
+                deepLinkSummary: readCallbackSummary(deepLink),
+            });
+            return null;
+        }
+
+        const installConversionDeepLinkParams = readInstallConversionDeepLinkParams(installConversion);
+        if (installConversionDeepLinkParams) {
+            appsFlyerLogger.info('deep link params ready', {
+                decisionId: openUrlDecisionId,
+                source: 'install_conversion',
+                keys: Object.keys(installConversionDeepLinkParams.urlParams),
+            });
+            return installConversionDeepLinkParams;
+        }
+
+        if (deepLink && installConversion) {
+            appsFlyerLogger.warn('openUrl deep link params unavailable', {
+                decisionId: openUrlDecisionId,
+                deepLinkStatus: deepLink?.deepLinkStatus,
+                deepLinkSummary: readCallbackSummary(deepLink),
+                installConversionAfStatus: readCallbackFields(installConversion)?.af_status,
+                installConversionFirstLaunch: readCallbackFields(installConversion)?.is_first_launch,
+                installConversionSummary: readCallbackSummary(installConversion),
+            });
+            return null;
+        }
+
+        await wait(OPEN_URL_POLL_MS);
+    }
+
+    const deepLink = readCurrentDecisionPayload(latestDeepLink);
+    const installConversion = readCurrentDecisionPayload(latestInstallConversion);
+    appsFlyerLogger.warn('openUrl deep link callback unavailable', {
+        decisionId: openUrlDecisionId,
+        hasDeepLinkCallback: deepLink !== null,
+        hasInstallConversionCallback: installConversion !== null,
+        deepLinkStatus: deepLink?.deepLinkStatus,
+        installConversionAfStatus: readCallbackFields(installConversion)?.af_status,
+        installConversionFirstLaunch: readCallbackFields(installConversion)?.is_first_launch,
+        deepLinkSummary: deepLink ? readCallbackSummary(deepLink) : null,
+        installConversionSummary: installConversion ? readCallbackSummary(installConversion) : null,
+    });
+    return null;
+};
+
 const readCurrentDeepLinkParams = async (config, context) => {
     if (!isConfigReady(config) || !canLoad()) {
         return null;
     }
 
     if (!currentDeepLinkReadTask) {
-        currentDeepLinkReadTask = (async () => {
-            const openUrlDeepLinkWaitMs = config.openUrlDeepLinkWaitMs;
-            if (openUrlDeepLinkWaitMs === 0) {
-                appsFlyerLogger.info('openUrl attribution wait skipped by config', {
-                    decisionId: openUrlDecisionId,
-                });
-                return null;
-            }
-
-            await start(config, context);
-
-            const deadlineAt = Date.now() + openUrlDeepLinkWaitMs;
-            appsFlyerLogger.info('openUrl attribution wait start', {
-                decisionId: openUrlDecisionId,
-                waitMs: openUrlDeepLinkWaitMs,
-                hasDeepLinkCallback: readCurrentDecisionPayload(latestDeepLink) !== null,
-                hasInstallConversionCallback: readCurrentDecisionPayload(latestInstallConversion) !== null,
-            });
-            while (Date.now() <= deadlineAt) {
-                const deepLink = readCurrentDecisionPayload(latestDeepLink);
-                const installConversion = readCurrentDecisionPayload(latestInstallConversion);
-                const deepLinkParams = readDeepLinkParams(deepLink);
-                if (deepLinkParams) {
-                    appsFlyerLogger.info('deep link params ready', {
-                        decisionId: openUrlDecisionId,
-                        source: 'deep_link',
-                        keys: Object.keys(deepLinkParams.urlParams),
-                    });
-                    return deepLinkParams;
-                }
-
-                if (deepLink && !waitForInstallConversion) {
-                    appsFlyerLogger.info('openUrl deep link unavailable for existing install', {
-                        decisionId: openUrlDecisionId,
-                        deepLinkStatus: deepLink?.deepLinkStatus,
-                        deepLinkSummary: readCallbackSummary(deepLink),
-                    });
-                    return null;
-                }
-
-                const installConversionDeepLinkParams = readInstallConversionDeepLinkParams(installConversion);
-                if (installConversionDeepLinkParams) {
-                    appsFlyerLogger.info('deep link params ready', {
-                        decisionId: openUrlDecisionId,
-                        source: 'install_conversion',
-                        keys: Object.keys(installConversionDeepLinkParams.urlParams),
-                    });
-                    return installConversionDeepLinkParams;
-                }
-
-                if (deepLink && installConversion) {
-                    appsFlyerLogger.warn('openUrl deep link params unavailable', {
-                        decisionId: openUrlDecisionId,
-                        deepLinkStatus: deepLink?.deepLinkStatus,
-                        deepLinkSummary: readCallbackSummary(deepLink),
-                        installConversionAfStatus: readCallbackFields(installConversion)?.af_status,
-                        installConversionFirstLaunch: readCallbackFields(installConversion)?.is_first_launch,
-                        installConversionSummary: readCallbackSummary(installConversion),
-                    });
-                    return null;
-                }
-
-                await wait(OPEN_URL_POLL_MS);
-            }
-
-            const deepLink = readCurrentDecisionPayload(latestDeepLink);
-            const installConversion = readCurrentDecisionPayload(latestInstallConversion);
-            appsFlyerLogger.warn('openUrl deep link callback unavailable', {
-                decisionId: openUrlDecisionId,
-                hasDeepLinkCallback: deepLink !== null,
-                hasInstallConversionCallback: installConversion !== null,
-                deepLinkStatus: deepLink?.deepLinkStatus,
-                installConversionAfStatus: readCallbackFields(installConversion)?.af_status,
-                installConversionFirstLaunch: readCallbackFields(installConversion)?.is_first_launch,
-                deepLinkSummary: deepLink ? readCallbackSummary(deepLink) : null,
-                installConversionSummary: installConversion ? readCallbackSummary(installConversion) : null,
-            });
-            return null;
-        })();
+        currentDeepLinkReadTask = waitForCurrentOpenUrlDeepLinkParams(config, context);
     }
 
     return await currentDeepLinkReadTask;
+};
+
+const readLatestDeepLinkParams = async (config, context) => {
+    if (!isConfigReady(config) || !canLoad()) {
+        return null;
+    }
+
+    return await waitForCurrentOpenUrlDeepLinkParams(config, context);
 };
 
 const logEvent = async (config, eventName, eventValues, context) => {
@@ -569,6 +579,7 @@ export default {
     beginOpenUrlDecision,
     start,
     readCurrentDeepLinkParams,
+    readLatestDeepLinkParams,
     logEvent,
     parseClipboardFallback,
 };

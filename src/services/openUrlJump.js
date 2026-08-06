@@ -16,17 +16,15 @@ import { createDebugLogger } from '@/utils/logger';
  * - openUrl.jumped: 标记已发生过跳转（避免重复触发）
  * - openUrl.deferredJump: 静默计时任务（JSON）
  *   - triggerAtMs: number 触发时间（毫秒）
- *   - linkType?: '1' (webview) | '2' (external)
- *   - targetUrl?: string
- *   - fingerprint?: string
  *   - abTest?: '1' | '0'（用于 App 内部落地分流）
- * - openUrl.clipboardContentCache: init.readClipboard=1 且确定跳转时缓存本次提交的剪切板内容
+ *   - ordinaryClipboardEnabled: boolean
+ *   - attributionClipboardFallbackEnabled: boolean
+ *   - attributionDeepLinkParams: object | null
+ * - openUrl.clipboardSnapshot: 未跳转时每次启动更新、已跳转后复用的剪贴板快照
  * - openUrl.ruleConfigCache: 确定跳转时缓存本次返回的后端跳转规则配置快照
  * - openUrl.attributionDeepLinkParamsCache: 确定跳转时缓存本次命中的归因 deep link 参数
- * - openUrl.attributionClipboardFallbackPending: 归因 deep link 失败后的剪贴板 JSON 兜底任务
  */
 const deferredJumpLogger = createDebugLogger('DeferredJump');
-const ATTRIBUTION_CLIPBOARD_FALLBACK_EXPIRE_MS = 24 * 60 * 60 * 1000;
 
 /** 将 linkType 规范化为字符串 */
 export const normalizeLinkType = (linkType) => String(linkType ?? '');
@@ -44,6 +42,48 @@ export const safeJsonParse = (raw) => {
     } catch {
         return null;
     }
+};
+
+const normalizeOpenUrlClipboardSnapshot = (snapshot) => {
+    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+        return null;
+    }
+
+    const capturedAtMs = Number(snapshot.capturedAtMs);
+    if (!Number.isFinite(capturedAtMs) || capturedAtMs <= 0) {
+        return null;
+    }
+
+    return {
+        capturedAtMs,
+        hasReadClipboard: snapshot.hasReadClipboard === true,
+        clipboardContent: String(snapshot.clipboardContent ?? ''),
+    };
+};
+
+/** 保存本次启动读取的剪贴板快照；空内容和未读取必须区分。 */
+export const saveOpenUrlClipboardSnapshot = async ({ hasReadClipboard, clipboardContent }) => {
+    const snapshot = {
+        capturedAtMs: Date.now(),
+        hasReadClipboard: hasReadClipboard === true,
+        clipboardContent: String(clipboardContent ?? ''),
+    };
+    await AsyncStorage.setItem(
+        APP_STORAGE_KEYS.openUrl.clipboardSnapshot,
+        JSON.stringify(snapshot),
+    ).catch(() => { });
+    return snapshot;
+};
+
+/** 读取最近一次启动剪贴板快照。 */
+export const readOpenUrlClipboardSnapshot = async () => {
+    const rawSnapshot = await AsyncStorage.getItem(APP_STORAGE_KEYS.openUrl.clipboardSnapshot).catch(() => null);
+    return normalizeOpenUrlClipboardSnapshot(rawSnapshot ? safeJsonParse(rawSnapshot) : null);
+};
+
+/** 清理未跳转状态下不再允许使用的启动剪贴板快照。 */
+export const clearOpenUrlClipboardSnapshot = async () => {
+    await AsyncStorage.removeItem(APP_STORAGE_KEYS.openUrl.clipboardSnapshot).catch(() => { });
 };
 
 /** 规范化 getOpenUrl 返回的后端跳转规则配置；空对象表示没有可透传配置。 */
@@ -73,100 +113,6 @@ export const setJumpFlag = async () => {
 /** 清理静默计时任务 */
 export const clearDeferredJump = async () => {
     await AsyncStorage.removeItem(APP_STORAGE_KEYS.openUrl.deferredJump).catch(() => { });
-};
-
-const normalizeAttributionClipboardFallbackPending = (pending) => {
-    if (!pending || typeof pending !== 'object' || Array.isArray(pending)) {
-        return null;
-    }
-
-    const createdAtMs = Number(pending.createdAtMs);
-    if (!Number.isFinite(createdAtMs) || createdAtMs <= 0) {
-        return null;
-    }
-
-    return {
-        createdAtMs,
-        lastStatus: String(pending.lastStatus ?? ''),
-        reason: String(pending.reason ?? ''),
-        readClipboard: String(pending.readClipboard ?? '0'),
-        abTest: String(pending.abTest ?? '0'),
-    };
-};
-
-/** 清理归因剪贴板 JSON 兜底任务 */
-export const clearAttributionClipboardFallbackPending = async () => {
-    await AsyncStorage.removeItem(APP_STORAGE_KEYS.openUrl.attributionClipboardFallbackPending).catch(() => { });
-};
-
-/** 读取归因剪贴板 JSON 兜底任务；过期或损坏时返回 null */
-export const readAttributionClipboardFallbackPending = async () => {
-    const rawPending = await AsyncStorage.getItem(APP_STORAGE_KEYS.openUrl.attributionClipboardFallbackPending).catch(() => null);
-    const pending = normalizeAttributionClipboardFallbackPending(rawPending ? safeJsonParse(rawPending) : null);
-    if (!pending) {
-        return null;
-    }
-
-    if (Date.now() - pending.createdAtMs > ATTRIBUTION_CLIPBOARD_FALLBACK_EXPIRE_MS) {
-        await clearAttributionClipboardFallbackPending();
-        deferredJumpLogger.info('attribution clipboard fallback: expired, cleared');
-        return null;
-    }
-
-    return pending;
-};
-
-/** 保存归因 deep link 失败后的剪贴板 JSON 兜底任务 */
-export const saveAttributionClipboardFallbackPending = async ({ reason, readClipboard, abTest }) => {
-    const existingPending = await readAttributionClipboardFallbackPending();
-    const pending = existingPending ?? {
-        createdAtMs: Date.now(),
-        lastStatus: '',
-        reason: String(reason ?? ''),
-        readClipboard: String(readClipboard ?? '0'),
-        abTest: String(abTest ?? '0'),
-    };
-
-    const nextPending = {
-        ...pending,
-        reason: String(reason ?? pending.reason ?? ''),
-        readClipboard: String(readClipboard ?? pending.readClipboard ?? '0'),
-        abTest: String(abTest ?? pending.abTest ?? '0'),
-    };
-
-    await AsyncStorage.setItem(
-        APP_STORAGE_KEYS.openUrl.attributionClipboardFallbackPending,
-        JSON.stringify(nextPending),
-    ).catch(() => { });
-    deferredJumpLogger.info('attribution clipboard fallback: pending saved', {
-        reason: nextPending.reason,
-    });
-    return nextPending;
-};
-
-/** 记录一次归因剪贴板 JSON 兜底尝试 */
-export const recordAttributionClipboardFallbackAttempt = async (status) => {
-    const pending = await readAttributionClipboardFallbackPending();
-    if (!pending) {
-        return null;
-    }
-
-    const nextPending = {
-        ...pending,
-        lastStatus: String(status ?? ''),
-    };
-
-    await AsyncStorage.setItem(
-        APP_STORAGE_KEYS.openUrl.attributionClipboardFallbackPending,
-        JSON.stringify(nextPending),
-    ).catch(() => { });
-    return nextPending;
-};
-
-/** 读取已保存的剪切板内容；null 表示没有可用缓存 */
-export const getCachedOpenUrlClipboardContent = async () => {
-    const clipboardContent = await AsyncStorage.getItem(APP_STORAGE_KEYS.openUrl.clipboardContentCache).catch(() => null);
-    return clipboardContent ? clipboardContent : null;
 };
 
 /** 读取已保存的后端跳转规则配置快照；空对象表示没有可用缓存。 */
@@ -209,28 +155,6 @@ export const replaceCachedAttributionDeepLinkParams = async (attributionDeepLink
         keys: Object.keys(nextAttributionDeepLinkParams),
     });
     return nextAttributionDeepLinkParams;
-};
-
-/** 缓存已确定跳转的剪切板内容 */
-export const cacheOpenUrlClipboardContentForJump = async ({ readClipboard, clipboardContent, isOpen, linkType, targetUrl }) => {
-    const nextClipboardContent = String(clipboardContent ?? '');
-    const nextTargetUrl = String(targetUrl ?? '');
-    const shouldCacheClipboardContent = String(readClipboard ?? '') === '1'
-        && nextClipboardContent.length > 0
-        && String(isOpen ?? '') === '1'
-        && nextTargetUrl.length > 0
-        && isSupportedLinkType(linkType);
-
-    if (shouldCacheClipboardContent) {
-        const cachedClipboardContent = await getCachedOpenUrlClipboardContent();
-        if (cachedClipboardContent !== null) {
-            deferredJumpLogger.info('clipboard content cache: skipped, already cached');
-            return;
-        }
-
-        await AsyncStorage.setItem(APP_STORAGE_KEYS.openUrl.clipboardContentCache, nextClipboardContent).catch(() => { });
-        deferredJumpLogger.info('clipboard content cache: saved', { preview: nextClipboardContent.slice(0, 32) });
-    }
 };
 
 /** 缓存已确定跳转的后端跳转规则配置快照。 */
@@ -297,15 +221,21 @@ export const appendAttributionDeepLinkParamsToWebViewUrl = (targetUrl, attributi
     }
 };
 
-/** 保存静默计时任务（首次 getOpenUrl 决策的结果） */
-export const saveDeferredJump = async ({ triggerAtMs, linkType, targetUrl, fingerprint, abTest, readClipboard }) => {
+/** 保存静默计时任务（启动阶段读取剪贴板后的倒计时快照） */
+export const saveDeferredJump = async ({
+    triggerAtMs,
+    abTest,
+    ordinaryClipboardEnabled,
+    attributionClipboardFallbackEnabled,
+    attributionDeepLinkParams,
+}) => {
+    const normalizedAttributionDeepLinkParams = normalizeAttributionDeepLinkParams(attributionDeepLinkParams);
     await AsyncStorage.setItem(APP_STORAGE_KEYS.openUrl.deferredJump, JSON.stringify({
         triggerAtMs,
-        linkType,
-        targetUrl,
-        fingerprint: fingerprint ?? '',
         abTest: String(abTest ?? '0'),
-        readClipboard: String(readClipboard ?? '0'),
+        ordinaryClipboardEnabled: ordinaryClipboardEnabled === true,
+        attributionClipboardFallbackEnabled: attributionClipboardFallbackEnabled === true,
+        attributionDeepLinkParams: normalizedAttributionDeepLinkParams,
     })).catch(() => { });
 };
 
@@ -317,30 +247,44 @@ export const readDeferredJump = async () => {
     if (!raw) return null;
 
     const parsed = safeJsonParse(raw);
-    if (!parsed) {
-        deferredJumpLogger.warn('deferred: parse failed, cleared');
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        deferredJumpLogger.warn('deferred: invalid payload, cleared');
         await clearDeferredJump();
         return null;
     }
 
-    const triggerAtMs = Number(parsed?.triggerAtMs ?? 0);
-    const linkType = normalizeLinkType(parsed?.linkType ?? '');
-    const targetUrl = String(parsed?.targetUrl ?? '');
-    const fingerprint = String(parsed?.fingerprint ?? '');
-    const abTest = String(parsed?.abTest ?? '0');
-    const readClipboard = String(parsed?.readClipboard ?? '0');
+    const triggerAtMs = Number(parsed.triggerAtMs);
+    const {
+        abTest,
+        ordinaryClipboardEnabled,
+        attributionClipboardFallbackEnabled,
+        attributionDeepLinkParams: rawAttributionDeepLinkParams,
+    } = parsed;
+    const attributionDeepLinkParams = normalizeAttributionDeepLinkParams(rawAttributionDeepLinkParams);
 
-    if (!Number.isFinite(triggerAtMs) || triggerAtMs <= 0) {
+    if (
+        !Number.isFinite(triggerAtMs)
+        || triggerAtMs <= 0
+        || typeof abTest !== 'string'
+        || typeof ordinaryClipboardEnabled !== 'boolean'
+        || typeof attributionClipboardFallbackEnabled !== 'boolean'
+        || !Object.prototype.hasOwnProperty.call(parsed, 'attributionDeepLinkParams')
+        || (rawAttributionDeepLinkParams !== null && attributionDeepLinkParams === null)
+    ) {
         deferredJumpLogger.warn('deferred: invalid payload, cleared', {
             triggerAtMs,
-            linkType,
-            targetUrlLen: targetUrl?.length ?? 0,
         });
         await clearDeferredJump();
         return null;
     }
 
-    return { triggerAtMs, linkType, targetUrl, fingerprint, abTest, readClipboard };
+    return {
+        triggerAtMs,
+        abTest,
+        ordinaryClipboardEnabled,
+        attributionClipboardFallbackEnabled,
+        attributionDeepLinkParams,
+    };
 };
 
 /**

@@ -221,6 +221,22 @@ export const readCurrentAttributionDeepLinkParams = async () => {
     );
 };
 
+/** 延迟 OpenUrl 决策重新读取当前 AF 回调，不复用启动阶段的等待结果。 */
+export const readLatestAttributionDeepLinkParams = async () => {
+    if (
+        !isAttributionReady()
+        || !attributionRuntimeConfig.provider.canLoad()
+        || typeof attributionRuntimeConfig.provider.readLatestDeepLinkParams !== 'function'
+    ) {
+        return null;
+    }
+
+    return await attributionRuntimeConfig.provider.readLatestDeepLinkParams(
+        attributionRuntimeConfig.providerConfig,
+        readProviderContext(),
+    );
+};
+
 export const canOverrideCachedAttributionDeepLinkParams = (config) => {
     return normalizeAttributionConfig(config).allowDeepLinkOverride === true;
 };

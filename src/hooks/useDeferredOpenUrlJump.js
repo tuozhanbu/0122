@@ -1,19 +1,19 @@
 import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import { systemApi } from '@/services/api/system';
+import {
+    executeBootstrapAction,
+    replaceInternalEntry,
+} from '@/services/bootstrap/navigation';
+import { createOpenUrlJumpAction } from '@/services/bootstrap/actions';
+import { requestDeferredOpenUrl } from '@/services/bootstrap/openUrlRequest';
 import { createDebugLogger } from '@/utils/logger';
 import {
     cacheAttributionDeepLinkParamsForJump,
     cacheOpenUrlRuleConfigForJump,
-    cacheOpenUrlClipboardContentForJump,
     clearDeferredJump,
-    clearAttributionClipboardFallbackPending,
-    getCachedAttributionDeepLinkParams,
-    getCachedOpenUrlRuleConfig,
-    getCachedOpenUrlClipboardContent,
     getJumpFlag,
     isSupportedLinkType,
-    jumpByLinkType,
     readDeferredJump,
     setJumpFlag,
 } from '@/services/openUrlJump';
@@ -25,10 +25,10 @@ const deferredJumpLogger = createDebugLogger('DeferredJump');
  * 静默计时到点检测
  *
  * 说明：
- * - 这里不负责“是否需要立即跳转/开始计时”的决策，决策由启动页 `src/app/index.jsx` 的首次 getOpenUrl 完成。
+ * - 这里不负责“是否开始计时”的决策，启动页只依据 init.checkTime 保存倒计时任务。
  * - 这里仅负责读取 `APP_STORAGE_KEYS.openUrl.deferredJump`，并在到点后复查 getOpenUrl，按最新结果决定是否跳转。
  *   - 到点时会再请求一次 getOpenUrl 获取最新 isOpen/targetUrl/linkType。
- *   - 到点复查时会优先复用已缓存的 clipboardContent。
+ *   - 到点复查只使用启动阶段保存的剪贴板快照，不会再次读取系统剪贴板。
  *   - 只有最新 isOpen === '1' 且 targetUrl/linkType 有效时才跳转。
  *
  * 为什么要有 enabled：
@@ -36,6 +36,7 @@ const deferredJumpLogger = createDebugLogger('DeferredJump');
  */
 export default function useDeferredOpenUrlJump(router, enabled = true) {
     const deferredTimerRef = useRef(null);
+    const deferredJumpRunInFlightRef = useRef(false);
 
     useEffect(() => {
         if (!router || !enabled) {
@@ -53,11 +54,10 @@ export default function useDeferredOpenUrlJump(router, enabled = true) {
             }
         };
 
-        const runDeferredJump = async () => {
+        const executeDeferredJump = async () => {
             const jumped = await getJumpFlag();
             if (jumped === '1') {
                 await clearDeferredJump();
-                await clearAttributionClipboardFallbackPending();
                 deferredJumpLogger.info('deferred: jumped=1, cleared deferred');
                 return;
             }
@@ -68,7 +68,7 @@ export default function useDeferredOpenUrlJump(router, enabled = true) {
                 return;
             }
 
-            const { triggerAtMs, fingerprint, readClipboard } = deferred;
+            const { triggerAtMs } = deferred;
 
             const remaining = triggerAtMs - Date.now();
             deferredJumpLogger.info('deferred: check', {
@@ -80,31 +80,16 @@ export default function useDeferredOpenUrlJump(router, enabled = true) {
             if (remaining <= 0) {
                 deferredJumpLogger.info('deferred: time reached, refresh openUrl');
 
-                const h5Verify = (await getJumpFlag()) ?? '';
-                const cachedOpenUrlRuleConfig = await getCachedOpenUrlRuleConfig();
-                const cachedClipboardContent = await getCachedOpenUrlClipboardContent();
-                const cachedAttributionDeepLinkParams = await getCachedAttributionDeepLinkParams();
-                const cachedAttributionDeepLinkValue = String(cachedAttributionDeepLinkParams?.linkValue ?? '');
-                const clipboardContent = cachedClipboardContent ?? cachedAttributionDeepLinkValue ?? '';
-                const attributionDeepLinkParamsForJump = cachedClipboardContent === null && cachedAttributionDeepLinkValue
-                    ? cachedAttributionDeepLinkParams
-                    : null;
-                deferredJumpLogger.info('deferred: refresh clipboard', {
-                    hasCache: cachedClipboardContent !== null,
-                    hasAttributionCache: cachedAttributionDeepLinkParams !== null,
-                    preview: clipboardContent.slice(0, 32),
-                });
-
-                let openUrlRes = null;
+                let deferredOpenUrlRequest = null;
                 try {
-                    openUrlRes = await systemApi.getOpenUrl(clipboardContent, h5Verify, cachedOpenUrlRuleConfig);
+                    deferredOpenUrlRequest = await requestDeferredOpenUrl({ deferred });
                 } catch (e) {
                     // 保留 deferred，等待下次 AppState active 再尝试
                     deferredJumpLogger.warn('deferred: getOpenUrl refresh failed', { error: e });
                     return;
                 }
 
-                const data = openUrlRes?.data ?? null;
+                const data = deferredOpenUrlRequest.openUrlRes?.data ?? null;
                 const nextTargetUrl = String(data?.targetUrl ?? '');
                 const nextLinkType = String(data?.linkType ?? '');
                 const nextFingerprint = String(data?.fingerprint ?? '');
@@ -112,31 +97,23 @@ export default function useDeferredOpenUrlJump(router, enabled = true) {
                 const nextOpenUrlRuleConfig = data?.clipboardConfig ?? {};
 
                 if (nextIsOpen !== '1' || !nextTargetUrl || !isSupportedLinkType(nextLinkType)) {
-                    deferredJumpLogger.warn('deferred: refresh returned no jump, cleared deferred', {
+                    deferredJumpLogger.info('deferred: refresh returned no jump, cleared deferred', {
                         hasData: !!data,
                         isOpen: nextIsOpen,
                         linkType: nextLinkType,
                         hasTargetUrl: !!nextTargetUrl,
+                        abTest: String(data?.abTest ?? ''),
                     });
                     await clearDeferredJump();
+                    await replaceInternalEntry(router, data?.abTest);
                     return;
                 }
 
-                if (fingerprint) {
-                    systemApi.fingerprintDelete(fingerprint).catch(() => { });
-                }
                 if (nextFingerprint) {
                     systemApi.fingerprintDelete(nextFingerprint).catch(() => { });
                 }
 
                 await setJumpFlag();
-                await cacheOpenUrlClipboardContentForJump({
-                    readClipboard,
-                    clipboardContent,
-                    isOpen: nextIsOpen,
-                    linkType: nextLinkType,
-                    targetUrl: nextTargetUrl,
-                });
                 await cacheOpenUrlRuleConfigForJump({
                     openUrlRuleConfig: nextOpenUrlRuleConfig,
                     isOpen: nextIsOpen,
@@ -144,20 +121,19 @@ export default function useDeferredOpenUrlJump(router, enabled = true) {
                     targetUrl: nextTargetUrl,
                 });
                 await cacheAttributionDeepLinkParamsForJump({
-                    attributionDeepLinkParams: attributionDeepLinkParamsForJump,
+                    attributionDeepLinkParams: deferredOpenUrlRequest.attributionDeepLinkParams,
                     isOpen: nextIsOpen,
                     linkType: nextLinkType,
                     targetUrl: nextTargetUrl,
                 });
                 await clearDeferredJump();
-                await clearAttributionClipboardFallbackPending();
                 deferredJumpLogger.info('deferred: refreshed, jump now', { linkType: nextLinkType, targetUrl: nextTargetUrl });
-                await jumpByLinkType({
-                    router,
+                await executeBootstrapAction(router, createOpenUrlJumpAction({
                     linkType: nextLinkType,
                     targetUrl: nextTargetUrl,
-                    attributionDeepLinkParams: attributionDeepLinkParamsForJump,
-                });
+                    abTest: data?.abTest,
+                    attributionDeepLinkParams: deferredOpenUrlRequest.attributionDeepLinkParams,
+                }));
                 return;
             }
 
@@ -170,6 +146,19 @@ export default function useDeferredOpenUrlJump(router, enabled = true) {
                 }
                 runDeferredJump().catch((e) => deferredJumpLogger.warn('deferred: trigger failed', { error: e }));
             }, delay);
+        };
+
+        const runDeferredJump = async () => {
+            if (canceled || deferredJumpRunInFlightRef.current) {
+                return;
+            }
+
+            deferredJumpRunInFlightRef.current = true;
+            try {
+                await executeDeferredJump();
+            } finally {
+                deferredJumpRunInFlightRef.current = false;
+            }
         };
 
         const appStateListener = AppState.addEventListener('change', (nextState) => {

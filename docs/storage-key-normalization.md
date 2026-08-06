@@ -37,10 +37,9 @@ export const APP_STORAGE_KEYS = {
     openUrl: {
         jumped: 'app.openUrl.jumped',
         deferredJump: 'app.openUrl.deferredJump',
-        clipboardContentCache: 'app.openUrl.clipboardContentCache',
+        clipboardSnapshot: 'app.openUrl.clipboardSnapshot',
         ruleConfigCache: 'app.openUrl.clipboardConfigCache',
         attributionDeepLinkParamsCache: 'app.openUrl.attributionDeepLinkParamsCache',
-        attributionClipboardFallbackPending: 'app.openUrl.attributionClipboardFallbackPending',
     },
     internalEntry: {
         stickyB: 'app.internalEntry.stickyB',
@@ -101,10 +100,9 @@ export const APP_STORAGE_KEYS = {
     openUrl: {
         jumped: 'OPEN_URL_JUMPED',
         deferredJump: 'OPEN_URL_DEFERRED_JUMP',
-        clipboardContentCache: 'OPEN_URL_CLIPBOARD_CONTENT_CACHE',
+        clipboardSnapshot: 'OPEN_URL_CLIPBOARD_SNAPSHOT',
         ruleConfigCache: 'OPEN_URL_CLIPBOARD_CONFIG_CACHE',
         attributionDeepLinkParamsCache: 'OPEN_URL_ATTRIBUTION_DEEP_LINK_PARAMS_CACHE',
-        attributionClipboardFallbackPending: 'OPEN_URL_ATTRIBUTION_CLIPBOARD_FALLBACK_PENDING',
     },
     internalEntry: {
         stickyB: 'AB_TEST_STICKY_B',

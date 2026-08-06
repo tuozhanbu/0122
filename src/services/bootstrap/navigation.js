@@ -5,7 +5,7 @@ import { createDebugLogger } from '@/utils/logger';
 
 const logger = createDebugLogger('DeferredJump');
 
-const replaceInternalEntry = async (router, abTest) => {
+export const replaceInternalEntry = async (router, abTest) => {
     const route = await resolveInternalEntryRoute(abTest);
     logger.info('route: replace internal entry', { route, abTest: String(abTest ?? '') });
     router.replace(route);

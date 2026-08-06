@@ -7,7 +7,6 @@ import AppDebugOverlay from '@/components/debug/overlay/Overlay';
 import AppDebugPanel from '@/components/debug/panel/Panel';
 import useBootstrapTranslations from '@/hooks/useBootstrapTranslations';
 import useDeferredOpenUrlJump from '@/hooks/useDeferredOpenUrlJump';
-import useAttributionClipboardFallbackJump from '@/hooks/useAttributionClipboardFallbackJump';
 import { useAppDebugSnapshot } from '@/services/appDebug/store';
 import { installClientErrorReporter, setClientErrorRoute } from '@/services/logging/clientErrors/capture';
 import { flushClientErrorReportsWhenDue } from '@/services/logging/clientErrors/uploadSchedule';
@@ -38,7 +37,6 @@ export default function RootLayout() {
 
     useBootstrapTranslations();
     useDeferredOpenUrlJump(router, enableDeferredCheck);
-    useAttributionClipboardFallbackJump(router, enableDeferredCheck);
 
     useEffect(() => {
         setClientErrorRoute(pathname);

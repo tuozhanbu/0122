@@ -12,10 +12,7 @@ import {
     readCurrentAttributionDeepLinkParams,
     startAttributionReporter,
 } from '@/services/attribution/reporter';
-import {
-    clearAttributionClipboardFallbackPending,
-    replaceCachedAttributionDeepLinkParams,
-} from '@/services/openUrlJump';
+import { replaceCachedAttributionDeepLinkParams } from '@/services/openUrlJump';
 import { createDebugLogger } from '@/utils/logger';
 
 const logger = createDebugLogger('DeferredJump');
@@ -100,10 +97,6 @@ export const prepareBootstrapContext = async ({
             attributionClipboardFallbackEnabled: canUseAttributionClipboardFallback(attributionConfig),
         },
     });
-    if (!canUseAttributionClipboardFallback(attributionConfig)) {
-        await clearAttributionClipboardFallbackPending();
-    }
-
     // 进入内部页面后会基于这份 init.base 补拉语言包。
     setBootstrapBase(base);
 
