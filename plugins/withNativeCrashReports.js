@@ -113,6 +113,11 @@ class AppNativeCrashReportsModule(
   }
 
   @ReactMethod
+  fun clearPendingNativeCrashReports(promise: Promise) {
+    promise.resolve(null)
+  }
+
+  @ReactMethod
   fun triggerNativeCrash() {
     throw RuntimeException("Debug test Android native crash: " + Date().toString())
   }
@@ -411,6 +416,12 @@ RCT_EXPORT_METHOD(flushPendingNativeCrashReports:(RCTPromiseResolveBlock)resolve
     }
     resolve(@{ @"exported": @(filteredReports.count) });
   }];
+}
+
+RCT_EXPORT_METHOD(clearPendingNativeCrashReports:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+  KSCrashReportStore *reportStore = [KSCrash sharedInstance].reportStore;
+  [reportStore deleteAllReports];
+  resolve(nil);
 }
 
 RCT_EXPORT_METHOD(triggerNativeCrash) {

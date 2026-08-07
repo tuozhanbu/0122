@@ -102,7 +102,7 @@
 - Debug 面板常驻挂载在根布局里，内部 tabbar 当前包含 `Info`、`Logs` 和 `Tools`；这里不使用 Expo Router 的 `(tabs)` 或动态路由。
 - `Info` 会展示 App、设备、Build / Runtime、Debug 状态、服务器 `debug` 配置和请求头；后端新增字段会自动显示在 `Server Debug Config` 区域，`token` / `password` / `secret` / `key` 等敏感字段会脱敏。
 - `Logs` 会展示本机 Debug 日志和客户端异常记录，支持刷新、复制、清理；Debug 日志只在本机 Debug 开启时写入，并按每次 App 启动单独保存文件，页面使用启动列表/详情结构，可删除单个启动日志文件；客户端异常记录不依赖 Debug 开关，页面使用异常列表/详情结构，详情展示 summary、stack、breadcrumbs 和 extra。
-- `Tools` 提供复制脱敏 Debug 快照、重置悬浮按钮位置、重新初始化、清除本地数据、清除全部本地数据、关闭 Debug 和异常链路测试；清除本地数据会二次确认，其中 `Clear Data` 会保留 Debug 状态、`installId`、悬浮按钮位置和日志文件，`Clear All Data` 会清空全部 AsyncStorage 和 App 私有日志文件。
+- `Tools` 提供复制脱敏 Debug 快照、重置悬浮按钮位置、重新初始化、清除本地数据、清除全部本地数据、关闭 Debug 和异常链路测试；清除本地数据会二次确认，其中 `Clear Data` 会保留 Debug 状态、session、悬浮按钮位置和日志文件，`Clear All Data` 会清空全部 AsyncStorage、运行态快照、App 私有日志文件和未导出原生崩溃报告。
 - Debug 面板文案固定使用英文，不接入 App 语言包。
 
 ## Crash Tests

@@ -1,10 +1,26 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { APP_STORAGE_KEYS } from '@/constants/storageKeys';
+import useAppStore from '@/store/useAppStore';
+import useLangStore from '@/store/useLangStore';
+import useUserStore from '@/store/useUserStore';
+import useWebViewAuthStore from '@/store/useWebViewAuthStore';
 import {
+    clearAppDebugRuntimeInstallId,
     getAppDebugSnapshot,
     readAppDebugFloatingButtonPosition,
+    resetAppDebugRuntimeState,
     saveAppDebugFloatingButtonPosition,
+    setAppDebugEnabled,
 } from '@/services/appDebug/store';
+import { clearAttributionRuntimeState } from '@/services/attribution/reporter';
+import { clearInstallIdMemoryCache } from '@/services/installIdentity';
+import { clearBreadcrumbs } from '@/services/logging/breadcrumbs';
+import { clearClientErrorRuntimeContext } from '@/services/logging/clientErrors/runtime';
+import { waitForActiveClientErrorUpload } from '@/services/logging/clientErrors/uploadSchedule';
+import { clearDebugLogFiles } from '@/services/logging/debugLogs/sessions';
+import { clearAllLogFiles } from '@/services/logging/jsonlFiles';
+import { clearPendingNativeCrashReports } from '@/services/logging/nativeCrashReports';
+import { invalidateDeferredOpenUrlExecutions } from '@/services/openUrlJump';
 import { clearAllOrThrow, setItemOrThrow } from '@/utils/storage';
 
 export const readAsyncStorageKeys = async () => {
@@ -14,13 +30,27 @@ export const readAsyncStorageKeys = async () => {
 
 export const readAsyncStorageValue = (key) => AsyncStorage.getItem(key);
 
-export const clearAppStorageKeepingDebugState = async () => {
+const clearAppRuntimeData = async () => {
+    const attributionRuntimeClearTask = clearAttributionRuntimeState();
+    invalidateDeferredOpenUrlExecutions();
+    clearInstallIdMemoryCache();
+    clearAppDebugRuntimeInstallId();
+    clearBreadcrumbs();
+    clearClientErrorRuntimeContext();
+    useAppStore.getState().clearBootstrapBase();
+    useUserStore.getState().clearUserRuntimeState();
+    useLangStore.getState().clearLangRuntimeState();
+    useWebViewAuthStore.getState().clearWebViewAuthRuntimeState();
+    await attributionRuntimeClearTask;
+};
+
+export const clearAppStorageKeepingDebugSettings = async () => {
     const currentSnapshot = getAppDebugSnapshot();
     const debugEnabled = currentSnapshot.enabled;
     const debugSessionId = currentSnapshot.sessionId;
-    const installId = currentSnapshot.installId;
     const buttonPosition = await readAppDebugFloatingButtonPosition();
 
+    await clearAppRuntimeData();
     await clearAllOrThrow();
 
     const restoreTasks = [
@@ -31,13 +61,20 @@ export const clearAppStorageKeepingDebugState = async () => {
         restoreTasks.push(setItemOrThrow(APP_STORAGE_KEYS.appDebug.sessionId, debugSessionId));
     }
 
-    if (installId) {
-        restoreTasks.push(setItemOrThrow(APP_STORAGE_KEYS.identity.installId, installId));
-    }
-
     if (buttonPosition) {
         restoreTasks.push(saveAppDebugFloatingButtonPosition(buttonPosition));
     }
 
     await Promise.all(restoreTasks);
+};
+
+export const clearAllAppData = async () => {
+    await setAppDebugEnabled(false);
+    await waitForActiveClientErrorUpload();
+    await clearAppRuntimeData();
+    await clearAllOrThrow();
+    await clearPendingNativeCrashReports();
+    await clearDebugLogFiles();
+    await clearAllLogFiles();
+    resetAppDebugRuntimeState();
 };

@@ -259,6 +259,15 @@ const onUrlOpen = ({ source } = {}) => {
     });
 };
 
+const clearRuntimeState = () => {
+    latestDeepLink = null;
+    latestInstallConversion = null;
+    currentDeepLinkReadTask = null;
+    openUrlDecisionId = 0;
+    waitForInstallConversion = true;
+    writeSnapshot = () => Promise.resolve(null);
+};
+
 const registerListeners = (nativeModule) => {
     if (listenersRegistered) {
         return;
@@ -594,6 +603,7 @@ export default {
     isConfigReady,
     onConfigUpdated,
     onUrlOpen,
+    clearRuntimeState,
     beginOpenUrlDecision,
     start,
     readCurrentDeepLinkParams,

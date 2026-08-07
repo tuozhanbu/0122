@@ -23,6 +23,15 @@ const useUserStore = create((set, get) => ({
         });
     },
 
+    /** 清空当前进程中恢复的用户状态；持久化数据由所属清理操作统一删除。 */
+    clearUserRuntimeState: () => {
+        set({
+            userInfo: null,
+            isLoggedIn: false,
+            isLoading: false,
+        });
+    },
+
     /** 设置用户信息（登录成功后调用） */
     setUser: async (userInfo) => {
         await setUserInfo(userInfo);

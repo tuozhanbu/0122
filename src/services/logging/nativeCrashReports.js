@@ -26,6 +26,16 @@ export const flushPendingNativeCrashReports = async () => {
     return result;
 };
 
+export const clearPendingNativeCrashReports = async () => {
+    const nativeModule = getNativeCrashReportsModule();
+    if (!nativeModule?.clearPendingNativeCrashReports) {
+        return { available: false };
+    }
+
+    await nativeModule.clearPendingNativeCrashReports();
+    return { available: true };
+};
+
 export const triggerNativeCrash = async () => {
     const nativeModule = getNativeCrashReportsModule();
     if (!nativeModule?.triggerNativeCrash) {

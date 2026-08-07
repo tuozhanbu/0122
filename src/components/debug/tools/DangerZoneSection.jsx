@@ -14,11 +14,11 @@ import {
     setAppDebugPanelVisible,
     useAppDebugSnapshot,
 } from '@/services/appDebug/store';
-import { clearAppStorageKeepingDebugState } from '@/services/appDebug/storage';
-import { clearInstallIdMemoryCache } from '@/services/installIdentity';
-import { clearAllLogFiles } from '@/services/logging/jsonlFiles';
+import {
+    clearAllAppData,
+    clearAppStorageKeepingDebugSettings,
+} from '@/services/appDebug/storage';
 import { createLogger } from '@/utils/logger';
-import { clearAllOrThrow } from '@/utils/storage';
 
 const logger = createLogger('AppDebugDangerZone');
 
@@ -47,7 +47,7 @@ export default function AppDebugDangerZoneSection() {
         if (busy) return;
         setClearingStorage(true);
         try {
-            await clearAppStorageKeepingDebugState();
+            await clearAppStorageKeepingDebugSettings();
             restartBootstrap();
         } catch (error) {
             logger.warn('clear app storage failed', { error });
@@ -61,7 +61,7 @@ export default function AppDebugDangerZoneSection() {
         if (busy) return;
         Alert.alert(
             'Clear Local Data?',
-            'Debug state, installId, and floating button position will be kept.',
+            'Debug state and floating button position will be kept.',
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
@@ -77,9 +77,7 @@ export default function AppDebugDangerZoneSection() {
         if (busy) return;
         setClearingAllStorage(true);
         try {
-            await clearAllOrThrow();
-            await clearAllLogFiles();
-            clearInstallIdMemoryCache();
+            await clearAllAppData();
             restartBootstrap();
         } catch (error) {
             logger.warn('clear all app storage failed', { error });

@@ -24,6 +24,8 @@ let attributionRuntimeConfig = createEmptyAttributionConfig();
 let urlOpenListenerRegistered = false;
 let initialAttributionUrlReadTask = null;
 let initialAttributionUrl = '';
+let attributionRuntimeRevision = 0;
+let attributionSnapshotWriteTask = Promise.resolve();
 
 export { normalizeAttributionDeepLinkParams };
 
@@ -83,20 +85,37 @@ const normalizeStoredAttribution = (value) => {
     };
 };
 
-const saveAttributionSnapshot = async (patch) => {
-    const storedSnapshot = attributionSnapshot
-        ?? normalizeStoredAttribution(await tryGetItem(APP_STORAGE_KEYS.attribution.report));
+const enqueueAttributionSnapshotWrite = (task) => {
+    const nextTask = attributionSnapshotWriteTask.then(task, task);
+    attributionSnapshotWriteTask = nextTask;
+    return nextTask;
+};
 
-    const nextSnapshot = {
-        ...storedSnapshot,
-        ...patch,
-        updatedAt: new Date().toISOString(),
-    };
+const saveAttributionSnapshot = (patch) => {
+    const snapshotRevision = attributionRuntimeRevision;
 
-    attributionSnapshot = nextSnapshot;
-    attributionId = nextSnapshot.attributionId ?? attributionId;
-    await trySetItem(APP_STORAGE_KEYS.attribution.report, nextSnapshot);
-    return nextSnapshot;
+    return enqueueAttributionSnapshotWrite(async () => {
+        if (snapshotRevision !== attributionRuntimeRevision) {
+            return null;
+        }
+
+        const storedSnapshot = attributionSnapshot
+            ?? normalizeStoredAttribution(await tryGetItem(APP_STORAGE_KEYS.attribution.report));
+        if (snapshotRevision !== attributionRuntimeRevision) {
+            return null;
+        }
+
+        const nextSnapshot = {
+            ...storedSnapshot,
+            ...patch,
+            updatedAt: new Date().toISOString(),
+        };
+
+        attributionSnapshot = nextSnapshot;
+        attributionId = nextSnapshot.attributionId ?? attributionId;
+        await trySetItem(APP_STORAGE_KEYS.attribution.report, nextSnapshot);
+        return nextSnapshot;
+    });
 };
 
 const readProviderContext = () => ({
@@ -120,8 +139,13 @@ const captureInitialAttributionUrl = () => {
         return initialAttributionUrlReadTask;
     }
 
+    const captureRevision = attributionRuntimeRevision;
     initialAttributionUrlReadTask = Linking.getInitialURL()
         .then((url) => {
+            if (captureRevision !== attributionRuntimeRevision) {
+                return '';
+            }
+
             const normalizedUrl = String(url ?? '').trim();
             initialAttributionUrl = normalizedUrl;
             if (!normalizedUrl) {
@@ -170,6 +194,19 @@ export const configureAttributionReporter = (config) => {
     }
 
     return attributionRuntimeConfig;
+};
+
+/** 清空本次进程的归因快照和待消费输入；全局 URL 监听保持注册，避免重复监听。 */
+export const clearAttributionRuntimeState = async () => {
+    const activeProvider = attributionRuntimeConfig.provider;
+    attributionRuntimeRevision += 1;
+    attributionId = null;
+    attributionSnapshot = getEmptyAttributionSnapshot();
+    initialAttributionUrl = '';
+    initialAttributionUrlReadTask = Promise.resolve('');
+    attributionRuntimeConfig = createEmptyAttributionConfig();
+    activeProvider?.clearRuntimeState?.();
+    await attributionSnapshotWriteTask;
 };
 
 export const registerAttributionUrlOpenListener = () => {

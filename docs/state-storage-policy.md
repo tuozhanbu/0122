@@ -27,10 +27,11 @@ Debug 页面里的清理操作是诊断工具，不是普通登出流程。
 
 - 当前已开启的 Debug enabled 标记。
 - 当前已开启的 Debug session。
-- `installId`。
 - Debug 悬浮按钮位置。
 
-`Clear All Data` 会清空全部 AsyncStorage 和 App 私有日志文件，不保留 Debug 状态、`installId`、悬浮按钮位置、Debug 日志或客户端异常记录。
+`Clear Data` 会清空安装身份、OpenUrl、归因、用户、语言等业务状态，并同步清空其运行态快照；Debug 日志和客户端异常记录按诊断用途保留。
+
+`Clear All Data` 会清空全部 AsyncStorage、运行态快照、App 私有日志文件和 iOS KSCrash 未导出报告，不保留 Debug 状态、`installId`、悬浮按钮位置、Debug 日志或客户端异常记录。
 
 Debug 日志和客户端异常记录写入 App 私有文件目录，不属于 AsyncStorage。`Clear Data` 不隐式清理这些文件；Debug 的 `Logs` 页面也提供单独清理入口，便于只清日志。
 

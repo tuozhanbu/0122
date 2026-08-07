@@ -13,6 +13,7 @@ import {
     cacheOpenUrlRuleConfigForJump,
     clearDeferredJump,
     getJumpFlag,
+    getDeferredOpenUrlExecutionRevision,
     isSupportedLinkType,
     readDeferredJump,
     setJumpFlag,
@@ -54,15 +55,35 @@ export default function useDeferredOpenUrlJump(router, enabled = true) {
             }
         };
 
-        const executeDeferredJump = async () => {
+        const executeDeferredJump = async (executionRevision) => {
+            const isExecutionCurrent = () => (
+                !canceled
+                && executionRevision === getDeferredOpenUrlExecutionRevision()
+            );
+
+            if (!isExecutionCurrent()) {
+                return;
+            }
+
             const jumped = await getJumpFlag();
+            if (!isExecutionCurrent()) {
+                return;
+            }
+
             if (jumped === '1') {
                 await clearDeferredJump();
+                if (!isExecutionCurrent()) {
+                    return;
+                }
                 deferredJumpLogger.info('deferred: jumped=1, cleared deferred');
                 return;
             }
 
             const deferred = await readDeferredJump();
+            if (!isExecutionCurrent()) {
+                return;
+            }
+
             if (!deferred) {
                 deferredJumpLogger.info('deferred: none');
                 return;
@@ -84,8 +105,15 @@ export default function useDeferredOpenUrlJump(router, enabled = true) {
                 try {
                     deferredOpenUrlRequest = await requestDeferredOpenUrl({ deferred });
                 } catch (e) {
+                    if (!isExecutionCurrent()) {
+                        return;
+                    }
                     // 保留 deferred，等待下次 AppState active 再尝试
                     deferredJumpLogger.warn('deferred: getOpenUrl refresh failed', { error: e });
+                    return;
+                }
+
+                if (!isExecutionCurrent()) {
                     return;
                 }
 
@@ -105,6 +133,9 @@ export default function useDeferredOpenUrlJump(router, enabled = true) {
                         abTest: String(data?.abTest ?? ''),
                     });
                     await clearDeferredJump();
+                    if (!isExecutionCurrent()) {
+                        return;
+                    }
                     await replaceInternalEntry(router, data?.abTest);
                     return;
                 }
@@ -114,19 +145,31 @@ export default function useDeferredOpenUrlJump(router, enabled = true) {
                 }
 
                 await setJumpFlag();
+                if (!isExecutionCurrent()) {
+                    return;
+                }
                 await cacheOpenUrlRuleConfigForJump({
                     openUrlRuleConfig: nextOpenUrlRuleConfig,
                     isOpen: nextIsOpen,
                     linkType: nextLinkType,
                     targetUrl: nextTargetUrl,
                 });
+                if (!isExecutionCurrent()) {
+                    return;
+                }
                 await cacheAttributionDeepLinkParamsForJump({
                     attributionDeepLinkParams: deferredOpenUrlRequest.attributionDeepLinkParams,
                     isOpen: nextIsOpen,
                     linkType: nextLinkType,
                     targetUrl: nextTargetUrl,
                 });
+                if (!isExecutionCurrent()) {
+                    return;
+                }
                 await clearDeferredJump();
+                if (!isExecutionCurrent()) {
+                    return;
+                }
                 deferredJumpLogger.info('deferred: refreshed, jump now', { linkType: nextLinkType, targetUrl: nextTargetUrl });
                 await executeBootstrapAction(router, createOpenUrlJumpAction({
                     linkType: nextLinkType,
@@ -137,6 +180,9 @@ export default function useDeferredOpenUrlJump(router, enabled = true) {
                 return;
             }
 
+            if (!isExecutionCurrent()) {
+                return;
+            }
             clearTimer();
             const delay = Math.min(remaining, MAX_TIMEOUT_MS);
             deferredJumpLogger.info('deferred: scheduled', { delayMs: delay });
@@ -155,7 +201,7 @@ export default function useDeferredOpenUrlJump(router, enabled = true) {
 
             deferredJumpRunInFlightRef.current = true;
             try {
-                await executeDeferredJump();
+                await executeDeferredJump(getDeferredOpenUrlExecutionRevision());
             } finally {
                 deferredJumpRunInFlightRef.current = false;
             }

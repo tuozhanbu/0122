@@ -176,12 +176,31 @@ end
     assert.equal(_internal.addKSCrashPod(patchedPodfile), patchedPodfile, 'KSCrash pod patch must be idempotent');
 };
 
+const verifyNativeCrashModuleClearOperations = () => {
+    assertContainsOnce(
+        _internal.ANDROID_NATIVE_MODULE_SOURCE,
+        'fun clearPendingNativeCrashReports',
+        'Android native crash clear operation',
+    );
+    assertContainsOnce(
+        _internal.IOS_NATIVE_MODULE_SOURCE,
+        'clearPendingNativeCrashReports:',
+        'iOS native crash clear operation',
+    );
+    assertContainsOnce(
+        _internal.IOS_NATIVE_MODULE_SOURCE,
+        '[reportStore deleteAllReports]',
+        'iOS native crash report deletion',
+    );
+};
+
 const run = () => {
     verifyIosAppDelegatePatch();
     verifyAndroidMainApplicationApplyShape();
     verifyAndroidMainApplicationPackageVariableShape();
     verifyAndroidMainActivityTemplateShape();
     verifyGradleAndPodPatches();
+    verifyNativeCrashModuleClearOperations();
     console.log('Native crash reports plugin verification passed.');
 };
 

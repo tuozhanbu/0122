@@ -40,3 +40,7 @@ export const recordBreadcrumb = (breadcrumb) => {
 export const readBreadcrumbs = () => {
     return runtimeState.entries.slice(-MAX_CLIENT_ERROR_BREADCRUMBS);
 };
+
+export const clearBreadcrumbs = () => {
+    runtimeState.entries = [];
+};

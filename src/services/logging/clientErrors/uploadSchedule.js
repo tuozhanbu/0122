@@ -73,3 +73,16 @@ export const flushClientErrorReportsWhenDue = async () => {
         uploadScheduleState.pendingFlush = null;
     }
 };
+
+/** 等待已开始的上报完成；清理操作不应因上报结果而中断。 */
+export const waitForActiveClientErrorUpload = async () => {
+    const activeFlush = uploadScheduleState.pendingFlush;
+    if (!activeFlush) {
+        return;
+    }
+
+    await activeFlush.then(
+        () => undefined,
+        () => undefined,
+    );
+};

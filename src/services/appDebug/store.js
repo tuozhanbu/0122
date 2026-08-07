@@ -293,6 +293,17 @@ export const setAppDebugPanelVisible = (visible) => {
     return nextSnapshot;
 };
 
+export const resetAppDebugRuntimeState = () => {
+    setSnapshot(emptySnapshot);
+};
+
+export const clearAppDebugRuntimeInstallId = () => {
+    setSnapshot({
+        ...getAppDebugSnapshot(),
+        installId: '',
+    });
+};
+
 export const toggleAppDebugPanelVisible = () => {
     return setAppDebugPanelVisible(!getAppDebugSnapshot().panelVisible);
 };

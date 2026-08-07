@@ -8,6 +8,11 @@ const useWebViewAuthStore = create((set) => ({
     telegramAuthResultUrl: null,
     setTelegramAuthResultUrl: (telegramAuthResultUrl) => set({ telegramAuthResultUrl }),
     clearTelegramAuthResultUrl: () => set({ telegramAuthResultUrl: null }),
+
+    clearWebViewAuthRuntimeState: () => set({
+        googleAuthResultUrl: null,
+        telegramAuthResultUrl: null,
+    }),
 }));
 
 export default useWebViewAuthStore;

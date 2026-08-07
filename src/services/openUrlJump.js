@@ -25,6 +25,15 @@ import { createDebugLogger } from '@/utils/logger';
  * - openUrl.attributionDeepLinkParamsCache: 确定跳转时缓存本次命中的归因 deep link 参数
  */
 const deferredJumpLogger = createDebugLogger('DeferredJump');
+let deferredOpenUrlExecutionRevision = 0;
+
+/** 读取当前静默跳转执行版本，用于识别已被清理操作作废的旧任务。 */
+export const getDeferredOpenUrlExecutionRevision = () => deferredOpenUrlExecutionRevision;
+
+/** 使当前进程内已开始的静默跳转任务失效，避免旧请求在清理后继续写入或跳转。 */
+export const invalidateDeferredOpenUrlExecutions = () => {
+    deferredOpenUrlExecutionRevision += 1;
+};
 
 /** 将 linkType 规范化为字符串 */
 export const normalizeLinkType = (linkType) => String(linkType ?? '');

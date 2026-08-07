@@ -27,3 +27,7 @@ export const setClientErrorCurrentRoute = (route) => {
 export const readClientErrorCurrentRoute = () => {
     return runtimeState.currentRoute;
 };
+
+export const clearClientErrorRuntimeContext = () => {
+    runtimeState.currentRoute = '';
+};

@@ -81,6 +81,17 @@ const useLangStore = create((set, get) => ({
         set({ lang, languageVer: ver, translations });
     },
 
+    /** 清空当前进程中恢复的语言状态；持久化数据由所属清理操作统一删除。 */
+    clearLangRuntimeState: () => {
+        set({
+            lang: defaultLangRuntimeState.lang,
+            translations: {},
+            languageVer: 0,
+            serverLanguageVer: 0,
+            supportedLangs: {},
+        });
+    },
+
     /**
      * 按服务端版本号决定是否拉取新翻译
      * @param {number} serverVer      - init 接口返回的 languageVer
