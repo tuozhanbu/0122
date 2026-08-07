@@ -22,6 +22,8 @@ let attributionId = null;
 let attributionSnapshot = null;
 let attributionRuntimeConfig = createEmptyAttributionConfig();
 let urlOpenListenerRegistered = false;
+let initialAttributionUrlReadTask = null;
+let initialAttributionUrl = '';
 
 export { normalizeAttributionDeepLinkParams };
 
@@ -108,6 +110,47 @@ const notifyProviderUrlOpen = (source, url) => {
     );
 };
 
+const captureInitialAttributionUrl = () => {
+    if (initialAttributionUrlReadTask) {
+        return initialAttributionUrlReadTask;
+    }
+
+    if (Platform.OS === 'web') {
+        initialAttributionUrlReadTask = Promise.resolve('');
+        return initialAttributionUrlReadTask;
+    }
+
+    initialAttributionUrlReadTask = Linking.getInitialURL()
+        .then((url) => {
+            const normalizedUrl = String(url ?? '').trim();
+            initialAttributionUrl = normalizedUrl;
+            if (!normalizedUrl) {
+                return '';
+            }
+
+            const openedAt = new Date().toISOString();
+            saveAttributionSnapshot({
+                initialUrl: {
+                    url: normalizedUrl,
+                    openedAt,
+                },
+                latestUrlOpen: {
+                    source: 'initial',
+                    url: normalizedUrl,
+                    openedAt,
+                },
+            }).catch((error) => {
+                attributionLogger.warn('initial url save failed', { error });
+            });
+            return normalizedUrl;
+        })
+        .catch((error) => {
+            attributionLogger.warn('initial url read failed', { error });
+            return '';
+        });
+    return initialAttributionUrlReadTask;
+};
+
 const isAttributionReady = (config = attributionRuntimeConfig) => {
     return !!config.provider && config.provider.isConfigReady(config.providerConfig);
 };
@@ -135,32 +178,7 @@ export const registerAttributionUrlOpenListener = () => {
     }
 
     urlOpenListenerRegistered = true;
-
-    Linking.getInitialURL()
-        .then((url) => {
-            const normalizedUrl = String(url ?? '').trim();
-            if (!normalizedUrl) {
-                return;
-            }
-
-            const openedAt = new Date().toISOString();
-            saveAttributionSnapshot({
-                initialUrl: {
-                    url: normalizedUrl,
-                    openedAt,
-                },
-                latestUrlOpen: {
-                    source: 'initial',
-                    url: normalizedUrl,
-                    openedAt,
-                },
-            }).catch((error) => {
-                attributionLogger.warn('initial url save failed', { error });
-            });
-        })
-        .catch((error) => {
-            attributionLogger.warn('initial url read failed', { error });
-        });
+    captureInitialAttributionUrl();
 
     Linking.addEventListener('url', (event) => {
         const normalizedUrl = String(event?.url ?? '').trim();
@@ -219,6 +237,40 @@ export const readCurrentAttributionDeepLinkParams = async () => {
         attributionRuntimeConfig.providerConfig,
         readProviderContext(),
     );
+};
+
+const readStartupUrlAttributionDeepLinkParams = async () => {
+    await captureInitialAttributionUrl();
+
+    if (
+        !isAttributionReady()
+        || typeof attributionRuntimeConfig.provider.parseUrlDeepLinkParams !== 'function'
+    ) {
+        return null;
+    }
+
+    const attributionDeepLinkParams = normalizeAttributionDeepLinkParams(
+        attributionRuntimeConfig.provider.parseUrlDeepLinkParams(initialAttributionUrl),
+    );
+    if (attributionDeepLinkParams) {
+        attributionLogger.info('startup URL deep link params ready', {
+            source: 'initial',
+            keys: Object.keys(attributionDeepLinkParams.urlParams),
+        });
+        return attributionDeepLinkParams;
+    }
+
+    return null;
+};
+
+/** 启动时先消费 Scheme URI / Universal Link，再等待归因 SDK 回调。 */
+export const readStartupAttributionDeepLinkParams = async () => {
+    const startupUrlAttributionDeepLinkParams = await readStartupUrlAttributionDeepLinkParams();
+    if (startupUrlAttributionDeepLinkParams) {
+        return startupUrlAttributionDeepLinkParams;
+    }
+
+    return await readCurrentAttributionDeepLinkParams();
 };
 
 /** 延迟 OpenUrl 决策重新读取当前 AF 回调，不复用启动阶段的等待结果。 */

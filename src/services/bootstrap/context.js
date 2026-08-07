@@ -9,7 +9,7 @@ import {
     canOverrideCachedAttributionDeepLinkParams,
     canUseAttributionClipboardFallback,
     configureAttributionReporter,
-    readCurrentAttributionDeepLinkParams,
+    readStartupAttributionDeepLinkParams,
     startAttributionReporter,
 } from '@/services/attribution/reporter';
 import { replaceCachedAttributionDeepLinkParams } from '@/services/openUrlJump';
@@ -102,7 +102,7 @@ export const prepareBootstrapContext = async ({
 
     if (canOverrideCachedAttributionDeepLinkParams(attributionConfig)) {
         logger.info('bootstrap: attribution deep link cache override enabled');
-        const attributionDeepLinkParams = await readCurrentAttributionDeepLinkParams();
+        const attributionDeepLinkParams = await readStartupAttributionDeepLinkParams();
         await replaceCachedAttributionDeepLinkParams(attributionDeepLinkParams);
     }
 

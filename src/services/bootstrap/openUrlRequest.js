@@ -3,8 +3,8 @@ import { parseAttributionClipboardFallback } from '@/services/attribution/clipbo
 import {
     canUseAttributionClipboardFallback,
     normalizeAttributionDeepLinkParams,
-    readCurrentAttributionDeepLinkParams,
     readLatestAttributionDeepLinkParams,
+    readStartupAttributionDeepLinkParams,
 } from '@/services/attribution/reporter';
 import {
     clearOpenUrlClipboardSnapshot,
@@ -48,7 +48,7 @@ const resolveClipboardSourcePolicy = ({ base, attributionConfig }) => {
     };
 };
 
-/** 未跳转时在启动阶段刷新一次剪贴板快照。 */
+/** 没有可用启动深链时，未跳转状态在启动阶段刷新一次剪贴板快照。 */
 const captureUnverifiedOpenUrlClipboardSnapshot = async ({ base, attributionConfig }) => {
     const clipboardSourcePolicy = resolveClipboardSourcePolicy({ base, attributionConfig });
     const shouldReadClipboard = clipboardSourcePolicy.ordinaryClipboardEnabled
@@ -59,6 +59,10 @@ const captureUnverifiedOpenUrlClipboardSnapshot = async ({ base, attributionConf
         return clipboardSourcePolicy;
     }
 
+    logger.info('openUrl: startup deep link unavailable, read clipboard fallback', {
+        ordinaryClipboardEnabled: clipboardSourcePolicy.ordinaryClipboardEnabled,
+        attributionClipboardFallbackEnabled: clipboardSourcePolicy.attributionClipboardFallbackEnabled,
+    });
     const clipboardSnapshot = await readSystemClipboardSnapshot();
     await saveOpenUrlClipboardSnapshot(clipboardSnapshot);
     logger.info('openUrl: startup clipboard snapshot refreshed', {
@@ -82,16 +86,17 @@ const readSnapshotClipboardContent = async () => {
     return clipboardSnapshot.clipboardContent;
 };
 
-const readCurrentOpenUrlAttributionDeepLinkParams = async () => {
-    return normalizeAttributionDeepLinkParams(
-        await readCurrentAttributionDeepLinkParams(),
-    );
-};
-
 const readLatestOpenUrlAttributionDeepLinkParams = async () => {
     return normalizeAttributionDeepLinkParams(
         await readLatestAttributionDeepLinkParams(),
     );
+};
+
+const readStartupOpenUrlAttributionDeepLinkParams = async () => {
+    return normalizeAttributionDeepLinkParams(
+        await readStartupAttributionDeepLinkParams(),
+    )
+        ?? await getCachedAttributionDeepLinkParams();
 };
 
 const requestOpenUrl = async ({
@@ -133,28 +138,47 @@ const requestVerifiedOpenUrl = async (h5Verify) => {
 };
 
 const captureDeferredOpenUrlState = async ({ base, attributionConfig }) => {
-    const [clipboardSourcePolicy, attributionDeepLinkParams] = await Promise.all([
-        captureUnverifiedOpenUrlClipboardSnapshot({ base, attributionConfig }),
-        readCurrentOpenUrlAttributionDeepLinkParams(),
-    ]);
+    const attributionDeepLinkParams = await readStartupOpenUrlAttributionDeepLinkParams();
+    if (attributionDeepLinkParams) {
+        return {
+            ...resolveClipboardSourcePolicy({ base, attributionConfig }),
+            attributionDeepLinkParams,
+        };
+    }
+
+    const clipboardSourcePolicy = await captureUnverifiedOpenUrlClipboardSnapshot({
+        base,
+        attributionConfig,
+    });
     return {
         ...clipboardSourcePolicy,
-        attributionDeepLinkParams,
+        attributionDeepLinkParams: null,
     };
 };
 
-/** 创建静默任务时采集剪贴板和当前 AF 归因快照。 */
+/** 创建静默任务时先采集启动深链；未命中时再采集剪贴板快照。 */
 export const createDeferredOpenUrlState = async ({ base, attributionConfig }) => {
     return await captureDeferredOpenUrlState({ base, attributionConfig });
 };
 
 /** 刷新静默任务时保留此前已采集、但本次未收到新回调的 AF 归因快照。 */
 export const refreshDeferredOpenUrlState = async ({ base, attributionConfig, deferred }) => {
-    const refreshedState = await captureDeferredOpenUrlState({ base, attributionConfig });
+    const attributionDeepLinkParams = (await readStartupOpenUrlAttributionDeepLinkParams())
+        ?? deferred.attributionDeepLinkParams;
+    if (attributionDeepLinkParams) {
+        return {
+            ...resolveClipboardSourcePolicy({ base, attributionConfig }),
+            attributionDeepLinkParams,
+        };
+    }
+
+    const clipboardSourcePolicy = await captureUnverifiedOpenUrlClipboardSnapshot({
+        base,
+        attributionConfig,
+    });
     return {
-        ...refreshedState,
-        attributionDeepLinkParams: refreshedState.attributionDeepLinkParams
-            ?? deferred.attributionDeepLinkParams,
+        ...clipboardSourcePolicy,
+        attributionDeepLinkParams: null,
     };
 };
 
@@ -166,7 +190,6 @@ export const requestDeferredOpenUrl = async ({ deferred }) => {
         return requestVerifiedOpenUrl(h5Verify);
     }
 
-    const snapshotClipboardContent = await readSnapshotClipboardContent();
     const attributionDeepLinkParams = (await readLatestOpenUrlAttributionDeepLinkParams())
         ?? deferred.attributionDeepLinkParams
         ?? await getCachedAttributionDeepLinkParams();
@@ -179,6 +202,8 @@ export const requestDeferredOpenUrl = async ({ deferred }) => {
             attributionDeepLinkParams,
         });
     }
+
+    const snapshotClipboardContent = await readSnapshotClipboardContent();
 
     if (deferred.ordinaryClipboardEnabled) {
         return requestOpenUrl({
@@ -216,13 +241,7 @@ export const requestBootstrapOpenUrl = async ({ base, attributionConfig }) => {
         return requestVerifiedOpenUrl(h5Verify);
     }
 
-    const clipboardSourcePolicy = await captureUnverifiedOpenUrlClipboardSnapshot({
-        base,
-        attributionConfig,
-    });
-    const snapshotClipboardContent = await readSnapshotClipboardContent();
-    const attributionDeepLinkParams = (await readCurrentOpenUrlAttributionDeepLinkParams())
-        ?? await getCachedAttributionDeepLinkParams();
+    const attributionDeepLinkParams = await readStartupOpenUrlAttributionDeepLinkParams();
     const attributionDeepLinkValue = String(attributionDeepLinkParams?.linkValue ?? '');
     if (attributionDeepLinkValue) {
         return requestOpenUrl({
@@ -232,6 +251,12 @@ export const requestBootstrapOpenUrl = async ({ base, attributionConfig }) => {
             attributionDeepLinkParams,
         });
     }
+
+    const clipboardSourcePolicy = await captureUnverifiedOpenUrlClipboardSnapshot({
+        base,
+        attributionConfig,
+    });
+    const snapshotClipboardContent = await readSnapshotClipboardContent();
 
     if (clipboardSourcePolicy.ordinaryClipboardEnabled) {
         return requestOpenUrl({

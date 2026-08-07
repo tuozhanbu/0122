@@ -36,7 +36,9 @@ AppsFlyer 的事件上报与启动阶段的深链结果读取互不绑定。`/sy
 - 设为 `0` 时，不等待 AppsFlyer 深链回调，立即继续 `/system/getOpenUrl`；AppsFlyer SDK 仍会初始化、监听回调并上报事件。
 - 仅接受非负整数毫秒值；字段缺失或值无效时统一使用 `5000`。
 
-系统初始 URL 继续异步采集并记录，不参与启动等待决策。已确认恢复本地安装身份时，AppsFlyer 只要返回明确的未命中深链结果便结束等待；首次安装或本地身份状态无法确认时，仍保留安装归因回调等待流程。
+系统初始 URL 会先参与启动决策，并同时记录到归因快照。已确认恢复本地安装身份时，AppsFlyer 只要返回明确的未命中深链结果便结束等待；首次安装或本地身份状态无法确认时，仍保留安装归因回调等待流程。
+
+启动 OpenUrl 的归因输入固定按以下顺序处理：先解析由 `Linking` 提供的 Scheme URI 或 Universal Link；没有有效 `deep_link_value` 时，再等待 AppsFlyer 回调；两者均不可用时，才按配置读取系统剪切板兜底。初始 URL 只使用本次进程收到的值，不复用历史归因快照。
 
 `allowDeepLinkOverride=true` 时，启动会无条件执行一次 AF 深链读取，再用本次有效结果覆盖缓存。该启动决策只使用一个 `openUrlDeepLinkWaitMs` 等待窗口；读取无结果时保留旧缓存，后续 `/system/getOpenUrl` 直接复用本次结果或旧缓存，不再重复等待第二个窗口。
 
@@ -73,7 +75,7 @@ AppsFlyer 的事件上报与启动阶段的深链结果读取互不绑定。`/sy
    如果本地没有 `openUrl.jumped=1`，且存在 `openUrl.deferredJump`，说明已有静默计时任务，直接进入内部入口，不重复请求 `/system/getOpenUrl`。
 
 3. `resolveNewDeferredJumpAction()`
-   `checkTime > 0` 时，按 init 返回的剪贴板开关和归因剪贴板兜底配置读取一次系统剪贴板，并采集当前 AF direct deep link，保存倒计时任务后进入内部入口；启动阶段不请求 `/system/getOpenUrl`。普通剪贴板开启时使用原始快照并忽略 AF 剪贴板兜底；AF 兜底只解析同一份原始快照，不会额外读取系统剪贴板。
+   `checkTime > 0` 时，先采集启动深链（Scheme URI、Universal Link、AF direct deep link）；只要存在有效参数，无论普通剪贴板是否开启，都不读取也不使用剪贴板。只有启动深链不可用时，才按 init 返回的剪贴板开关和归因剪贴板兜底配置读取一次系统剪贴板。随后保存倒计时任务并进入内部入口，启动阶段不请求 `/system/getOpenUrl`。普通剪贴板开启时使用原始快照并忽略 AF 剪贴板兜底；AF 兜底只解析同一份原始快照，不会额外读取系统剪贴板。
 
 4. `resolveOpenUrlAction()` / `resolveOpenUrlDecision()`
    根据后端 getOpenUrl 结果生成 action：
@@ -83,7 +85,7 @@ AppsFlyer 的事件上报与启动阶段的深链结果读取互不绑定。`/sy
    - 其他情况：进入内部入口。
 
 5. 根布局静默任务执行
-   到点后请求 `/system/getOpenUrl`；请求优先使用最新 AF deep link，其次使用静默任务中保存的 AF 快照。若 init 开启普通剪贴板读取，则使用启动时缓存的普通剪贴板内容且忽略 AF 剪贴板兜底；否则可使用启动时解析出的 AF 剪贴板兜底参数。返回可跳转结果时优先跳转；返回不可跳转结果时再按响应 `abTest` 切换内部入口。正常返回但不跳转时清除倒计时任务、保留剪贴板快照；请求失败时同样保留任务和快照等待下次前台重试。
+   到点后请求 `/system/getOpenUrl`；请求优先使用最新 AF deep link，其次使用静默任务中保存的 AF 快照。只有 AF 参数都不可用时，才读取并使用启动时缓存的剪贴板快照：若 init 开启普通剪贴板读取，则使用原始快照并忽略 AF 剪贴板兜底；否则可使用启动时解析出的 AF 剪贴板兜底参数。返回可跳转结果时优先跳转；返回不可跳转结果时再按响应 `abTest` 切换内部入口。正常返回但不跳转时清除倒计时任务、保留剪贴板快照；请求失败时同样保留任务和快照等待下次前台重试。
 
 6. `executeBootstrapAction()`
    执行 action：

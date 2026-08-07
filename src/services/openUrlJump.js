@@ -221,7 +221,7 @@ export const appendAttributionDeepLinkParamsToWebViewUrl = (targetUrl, attributi
     }
 };
 
-/** 保存静默计时任务（启动阶段读取剪贴板后的倒计时快照） */
+/** 保存静默计时任务的启动信号快照。 */
 export const saveDeferredJump = async ({
     triggerAtMs,
     abTest,

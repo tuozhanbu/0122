@@ -569,6 +569,24 @@ const parseClipboardFallback = (payload) => {
     return mapDeepLinkParams(payload);
 };
 
+const parseUrlDeepLinkParams = (url) => {
+    const normalizedUrl = String(url ?? '').trim();
+    if (!normalizedUrl) {
+        return null;
+    }
+
+    try {
+        const parsedUrl = new URL(normalizedUrl);
+        const urlParams = {};
+        parsedUrl.searchParams.forEach((value, key) => {
+            urlParams[key] = value;
+        });
+        return mapDeepLinkParams(urlParams);
+    } catch {
+        return null;
+    }
+};
+
 export default {
     name: 'appsFlyer',
     normalizeConfig,
@@ -580,6 +598,7 @@ export default {
     start,
     readCurrentDeepLinkParams,
     readLatestDeepLinkParams,
+    parseUrlDeepLinkParams,
     logEvent,
     parseClipboardFallback,
 };
