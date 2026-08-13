@@ -15,7 +15,8 @@
     "build:android-debug-apk": "CONFIGURATION=Debug scripts/build-android.sh apk",
     "build:android-release-apk": "CONFIGURATION=Release scripts/build-android.sh apk",
     "build:android-release-aab": "CONFIGURATION=Release scripts/build-android.sh aab",
-    "verify:native-crash-plugin": "node scripts/verify-native-crash-reports-plugin.js"
+    "verify:native-crash-plugin": "node scripts/verify-native-crash-reports-plugin.js",
+    "report:asset-size": "node scripts/report-asset-size.js"
   },
   "dependencies": {
     "@noble/ciphers": "^2.2.0",
