@@ -36,6 +36,29 @@ const formatBytes = (byteCount) => {
 
 const formatPercent = (part, whole) => whole === 0 ? '0.0%' : `${((part / whole) * 100).toFixed(1)}%`;
 
+const getDisplayWidth = (text) => [...String(text)].reduce((width, character) => {
+    const codePoint = character.codePointAt(0);
+    const isFullWidth = codePoint >= 0x1100 && (
+        codePoint <= 0x115F
+        || codePoint === 0x2329
+        || codePoint === 0x232A
+        || (codePoint >= 0x2E80 && codePoint <= 0xA4CF && codePoint !== 0x303F)
+        || (codePoint >= 0xAC00 && codePoint <= 0xD7A3)
+        || (codePoint >= 0xF900 && codePoint <= 0xFAFF)
+        || (codePoint >= 0xFE10 && codePoint <= 0xFE19)
+        || (codePoint >= 0xFE30 && codePoint <= 0xFE6F)
+        || (codePoint >= 0xFF00 && codePoint <= 0xFF60)
+        || (codePoint >= 0xFFE0 && codePoint <= 0xFFE6)
+    );
+
+    return width + (isFullWidth ? 2 : 1);
+}, 0);
+
+const padEndByDisplayWidth = (text, width) => {
+    const value = String(text);
+    return `${value}${' '.repeat(Math.max(width - getDisplayWidth(value), 0))}`;
+};
+
 const getDirectoryFiles = (directoryPath) => {
     const childEntries = fs.readdirSync(directoryPath, { withFileTypes: true });
 
@@ -77,10 +100,10 @@ const createDirectorySummary = (assetDirectory, files) => {
 
 const printTable = (headers, rows) => {
     const widths = headers.map((header, columnIndex) => Math.max(
-        header.length,
-        ...rows.map((row) => String(row[columnIndex]).length),
+        getDisplayWidth(header),
+        ...rows.map((row) => getDisplayWidth(row[columnIndex])),
     ));
-    const formatRow = (row) => row.map((cell, columnIndex) => String(cell).padEnd(widths[columnIndex])).join('  ');
+    const formatRow = (row) => row.map((cell, columnIndex) => padEndByDisplayWidth(cell, widths[columnIndex])).join('  ');
 
     console.log(formatRow(headers));
     console.log(widths.map((width) => '-'.repeat(width)).join('  '));
