@@ -68,6 +68,9 @@
       [
         "expo-build-properties",
         {
+          "ios": {
+            "buildReactNativeFromSource": true
+          },
           "android": {
             "buildArchs": [
               "armeabi-v7a",
