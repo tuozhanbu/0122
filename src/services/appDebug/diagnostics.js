@@ -79,8 +79,7 @@ export function buildAppDebugDiagnostics(appDebug, capturedAt = new Date().toISO
         },
         runtime: {
             dev: __DEV__,
-            ownership: Constants.appOwnership ?? null,
-            execution: Constants.executionEnvironment ?? null,
+            executionEnvironment: Constants.executionEnvironment ?? null,
             expoSdk: Constants.expoConfig?.sdkVersion ?? null,
             slug: Constants.expoConfig?.slug ?? null,
             nativeAppVersion: Constants.nativeAppVersion ?? null,
@@ -161,8 +160,7 @@ export function buildAppDebugDiagnosticsSections(appDebug) {
             title: 'Build / Runtime',
             rows: [
                 { label: 'Dev', value: runtime.dev },
-                { label: 'Ownership', value: runtime.ownership },
-                { label: 'Execution', value: runtime.execution },
+                { label: 'ExecutionEnvironment', value: runtime.executionEnvironment },
                 { label: 'ExpoSdk', value: runtime.expoSdk },
                 { label: 'Slug', value: runtime.slug },
                 { label: 'NativeApp', value: runtime.nativeAppVersion },

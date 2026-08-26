@@ -1,4 +1,3 @@
-import Constants from 'expo-constants';
 import { NativeEventEmitter, NativeModules, Platform } from 'react-native';
 import { normalizeAttributionDeepLinkParams } from '@/services/attribution/deepLinkParams';
 import { createDebugLogger } from '@/utils/logger';
@@ -192,10 +191,6 @@ const readInstallConversionDeepLinkParams = (installConversion) => {
 
 const canLoad = () => {
     if (Platform.OS !== 'ios' && Platform.OS !== 'android') {
-        return false;
-    }
-
-    if (Constants.appOwnership === 'expo') {
         return false;
     }
 
