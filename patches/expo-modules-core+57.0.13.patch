@@ -1,0 +1,356 @@
+diff --git a/node_modules/expo-modules-core/ios/Core/Arguments/Convertibles.swift b/node_modules/expo-modules-core/ios/Core/Arguments/Convertibles.swift
+index 4a63a50..9bf3935 100644
+--- a/node_modules/expo-modules-core/ios/Core/Arguments/Convertibles.swift
++++ b/node_modules/expo-modules-core/ios/Core/Arguments/Convertibles.swift
+@@ -46,7 +46,7 @@ extension URL: Convertible {
+   }
+ }
+ 
+-internal class UrlContainsInvalidCharactersException: Exception {
++internal class UrlContainsInvalidCharactersException: Exception, @unchecked Sendable {
+   override var reason: String {
+     return "Unable to create a URL object from the given string, make sure to percent-encode these characters: \(urlAllowedCharacters)"
+   }
+diff --git a/node_modules/expo-modules-core/ios/Core/Arguments/Enumerable.swift b/node_modules/expo-modules-core/ios/Core/Arguments/Enumerable.swift
+index 782219c..40c04ef 100644
+--- a/node_modules/expo-modules-core/ios/Core/Arguments/Enumerable.swift
++++ b/node_modules/expo-modules-core/ios/Core/Arguments/Enumerable.swift
+@@ -66,7 +66,7 @@ public extension Enumerable where Self: RawRepresentable, Self: Hashable {
+ /**
+  An error that is thrown when the value cannot be cast to associated `RawValue`.
+  */
+-internal class EnumCastingException: GenericException<(type: Any.Type, value: Any)> {
++internal class EnumCastingException: GenericException<(type: Any.Type, value: Any)>, @unchecked Sendable {
+   override var reason: String {
+     "Unable to cast '\(param.value)' to expected type \(param.type)"
+   }
+@@ -75,7 +75,7 @@ internal class EnumCastingException: GenericException<(type: Any.Type, value: An
+ /**
+  An error that is thrown when the value doesn't match any available case.
+  */
+-internal class EnumNoSuchValueException: GenericException<(type: Enumerable.Type, value: Any)> {
++internal class EnumNoSuchValueException: GenericException<(type: Enumerable.Type, value: Any)>, @unchecked Sendable {
+   var allRawValuesFormatted: String {
+     return param.type.allRawValues
+       .map { "'\($0)'" }
+diff --git a/node_modules/expo-modules-core/ios/Core/Conversions.swift b/node_modules/expo-modules-core/ios/Core/Conversions.swift
+index 6fe4a2b..428a9b8 100644
+--- a/node_modules/expo-modules-core/ios/Core/Conversions.swift
++++ b/node_modules/expo-modules-core/ios/Core/Conversions.swift
+@@ -227,7 +227,7 @@ public struct Conversions {
+   /**
+    An exception meaning that the number of arguments exceeds the limit.
+    */
+-  internal class TooManyArgumentsException: GenericException<(count: Int, limit: Int)> {
++  internal class TooManyArgumentsException: GenericException<(count: Int, limit: Int)>, @unchecked Sendable {
+     override var reason: String {
+       "Native function expects \(formatPlural(param.limit, "argument")), but received \(param.count)"
+     }
+@@ -236,7 +236,7 @@ public struct Conversions {
+   /**
+    An exception thrown when the native value cannot be converted to JavaScript value.
+    */
+-  internal final class ConversionToJSFailedException: GenericException<(kind: JavaScriptValue.Kind, nativeType: Any.Type)> {
++  internal final class ConversionToJSFailedException: GenericException<(kind: JavaScriptValue.Kind, nativeType: Any.Type)>, @unchecked Sendable {
+     override var code: String {
+       "ERR_CONVERTING_TO_JS_FAILED"
+     }
+@@ -248,7 +248,7 @@ public struct Conversions {
+   /**
+    An exception thrown when the JavaScript value cannot be converted to native value.
+    */
+-  internal final class ConversionToNativeFailedException: GenericException<(kind: JavaScriptValue.Kind, nativeType: Any.Type)> {
++  internal final class ConversionToNativeFailedException: GenericException<(kind: JavaScriptValue.Kind, nativeType: Any.Type)>, @unchecked Sendable {
+     override var code: String {
+       "ERR_CONVERTING_TO_NATIVE_FAILED"
+     }
+@@ -260,7 +260,7 @@ public struct Conversions {
+   /**
+    An exception that can be thrown by convertible types, when given value cannot be converted.
+    */
+-  public class ConvertingException<TargetType>: GenericException<Any?> {
++  public class ConvertingException<TargetType>: GenericException<Any?>, @unchecked Sendable {
+     public override var code: String {
+       "ERR_CONVERTING_FAILED"
+     }
+@@ -272,7 +272,7 @@ public struct Conversions {
+   /**
+    An exception that is thrown when given value cannot be cast.
+    */
+-  internal class CastingException<TargetType>: GenericException<Any> {
++  internal class CastingException<TargetType>: GenericException<Any>, @unchecked Sendable {
+     override var code: String {
+       "ERR_CASTING_FAILED"
+     }
+@@ -303,7 +303,7 @@ public struct Conversions {
+    An exception that can be thrown by convertible types,
+    when the values in given dictionary cannot be cast to specific type.
+    */
+-  internal class CastingValuesException<ValueType>: GenericException<[String]> {
++  internal class CastingValuesException<ValueType>: GenericException<[String]>, @unchecked Sendable {
+     override var code: String {
+       "ERR_CASTING_VALUES_FAILED"
+     }
+@@ -316,7 +316,7 @@ public struct Conversions {
+    An exception that can be thrown by convertible types,
+    when given dictionary is missing some required keys.
+    */
+-  internal class MissingKeysException<ValueType>: GenericException<[String]> {
++  internal class MissingKeysException<ValueType>: GenericException<[String]>, @unchecked Sendable {
+     override var reason: String {
+       "Missing keys \(formatKeys(param)) to create \(ValueType.self) record"
+     }
+@@ -325,7 +325,7 @@ public struct Conversions {
+   /**
+    An exception that is thrown when null value is tried to be cast to non-optional type.
+    */
+-  internal class NullCastException<TargetType>: Exception {
++  internal class NullCastException<TargetType>: Exception, @unchecked Sendable {
+     override var reason: String {
+       "Cannot cast null to non-optional '\(TargetType.self)'"
+     }
+diff --git a/node_modules/expo-modules-core/ios/Core/DynamicTypes/DynamicTypedArrayType.swift b/node_modules/expo-modules-core/ios/Core/DynamicTypes/DynamicTypedArrayType.swift
+index 026ee3b..daf321d 100644
+--- a/node_modules/expo-modules-core/ios/Core/DynamicTypes/DynamicTypedArrayType.swift
++++ b/node_modules/expo-modules-core/ios/Core/DynamicTypes/DynamicTypedArrayType.swift
+@@ -53,13 +53,13 @@ internal struct DynamicTypedArrayType: AnyDynamicType {
+   }
+ }
+ 
+-internal final class ArrayTypeMismatchException: GenericException<(received: Any.Type, expected: Any.Type)> {
++internal final class ArrayTypeMismatchException: GenericException<(received: Any.Type, expected: Any.Type)>, @unchecked Sendable {
+   override var reason: String {
+     "Received a typed array of type \(param.received), expected \(param.expected)"
+   }
+ }
+ 
+-internal final class NotTypedArrayException: GenericException<AnyTypedArray.Type> {
++internal final class NotTypedArrayException: GenericException<AnyTypedArray.Type>, @unchecked Sendable {
+   override var reason: String {
+     "Given argument is not an instance of \(param)"
+   }
+diff --git a/node_modules/expo-modules-core/ios/Core/DynamicTypes/DynamicViewType.swift b/node_modules/expo-modules-core/ios/Core/DynamicTypes/DynamicViewType.swift
+index 3035432..3b2d229 100644
+--- a/node_modules/expo-modules-core/ios/Core/DynamicTypes/DynamicViewType.swift
++++ b/node_modules/expo-modules-core/ios/Core/DynamicTypes/DynamicViewType.swift
+@@ -57,7 +57,7 @@ private func findViewTag(_ value: JavaScriptValue) -> Int? {
+   return nil
+ }
+ 
+-internal final class InvalidViewTagException: Exception {
++internal final class InvalidViewTagException: Exception, @unchecked Sendable {
+   override var reason: String {
+     "The view tag must be a number"
+   }
+diff --git a/node_modules/expo-modules-core/ios/Core/Events/EventEmitter.swift b/node_modules/expo-modules-core/ios/Core/Events/EventEmitter.swift
+index 3046568..e68b8fd 100644
+--- a/node_modules/expo-modules-core/ios/Core/Events/EventEmitter.swift
++++ b/node_modules/expo-modules-core/ios/Core/Events/EventEmitter.swift
+@@ -41,15 +41,12 @@ public extension EventEmitter {
+       log.warn("Trying to send event '\(event)' to \(type(of: self)), but the JS runtime has been lost")
+       return
+     }
+-    // The emitter is not necessarily `Sendable` - some modules hold non-sendable state — so we can't let
+-    // the compiler send `self` into the `@JavaScriptActor` region. Capturing it as `nonisolated(unsafe)` is
+-    // safe here because the scheduled closure only calls `withEventTarget`, which touches `@JavaScriptActor`-
+-    // isolated or `Sendable` state (the JS object, the registry, `appContext`) and the emitter's identity -
+-    // never the module's own mutable state.
+-    nonisolated(unsafe) weak let emitter = self
++    // Swift 6.2 treats capturing a weak EventEmitter into `@JavaScriptActor` as sending.
++    // Box the weak ref so the scheduled closure only captures a Sendable holder.
++    let emitterHolder = UnsafeWeakEventEmitter(self)
+ 
+     runtime.schedule {
+-      guard let emitter else {
++      guard let emitter = emitterHolder.value else {
+         return
+       }
+       let dispatched = emitter.withEventTarget { target in
+@@ -70,13 +67,10 @@ public extension EventEmitter {
+       log.warn("Trying to send event '\(event)' to \(type(of: self)), but the JS runtime has been lost")
+       return
+     }
+-    // See the note in `emit(event:payload:)` above - the emitter is captured as `nonisolated(unsafe)`
+-    // because it isn't necessarily `Sendable`, and the scheduled closure only reaches `@JavaScriptActor`-
+-    // isolated or `Sendable` state through it.
+-    nonisolated(unsafe) weak let emitter = self
++    let emitterHolder = UnsafeWeakEventEmitter(self)
+ 
+     runtime.schedule { [weak appContext] in
+-      guard let emitter, let appContext else {
++      guard let emitter = emitterHolder.value, let appContext else {
+         return
+       }
+       let jsPayload: JavaScriptValue
+@@ -117,3 +111,11 @@ internal func dispatchEvent(event: String, payload: JavaScriptValue, to target:
+     }
+   }
+ }
++
++private final class UnsafeWeakEventEmitter: @unchecked Sendable {
++  weak var value: (any EventEmitter)?
++
++  init(_ value: any EventEmitter) {
++    self.value = value
++  }
++}
+diff --git a/node_modules/expo-modules-core/ios/Core/Exceptions/CommonExceptions.swift b/node_modules/expo-modules-core/ios/Core/Exceptions/CommonExceptions.swift
+index 2b081a0..e0acddc 100644
+--- a/node_modules/expo-modules-core/ios/Core/Exceptions/CommonExceptions.swift
++++ b/node_modules/expo-modules-core/ios/Core/Exceptions/CommonExceptions.swift
+@@ -7,7 +7,7 @@ public struct Exceptions {
+   /**
+    The Expo app context is no longer available.
+    */
+-  public final class AppContextLost: Exception {
++  public final class AppContextLost: Exception, @unchecked Sendable {
+     override public var reason: String {
+       "The app context has been lost"
+     }
+@@ -16,7 +16,7 @@ public struct Exceptions {
+   /**
+    The JavaScript runtime is no longer available.
+    */
+-  public final class RuntimeLost: Exception {
++  public final class RuntimeLost: Exception, @unchecked Sendable {
+     override public var reason: String {
+       "The JavaScript runtime has been lost"
+     }
+@@ -25,7 +25,7 @@ public struct Exceptions {
+   /**
+    The UI runtime is no longer available.
+    */
+-  public final class UIRuntimeLost: Exception {
++  public final class UIRuntimeLost: Exception, @unchecked Sendable {
+     override public var reason: String {
+       "The UI runtime has been lost"
+     }
+@@ -34,7 +34,7 @@ public struct Exceptions {
+   /// No app context is associated with a JavaScript runtime because that runtime was never prepared
+   /// by Expo modules (its `global.expo` object carries no native state). Thrown by code that only
+   /// has a runtime and recovers the context via `AppContext.from(runtime:)`.
+-  public final class AppContextNotFound: Exception {
++  public final class AppContextNotFound: Exception, @unchecked Sendable {
+     override public var reason: String {
+       "Cannot find an app context associated with the JavaScript runtime"
+     }
+@@ -43,7 +43,7 @@ public struct Exceptions {
+   /**
+    An exception to throw when the operation is not supported on the simulator.
+    */
+-  public final class SimulatorNotSupported: Exception {
++  public final class SimulatorNotSupported: Exception, @unchecked Sendable {
+     override public var reason: String {
+       "This operation is not supported on the simulator"
+     }
+@@ -52,12 +52,12 @@ public struct Exceptions {
+   /**
+    An exception to throw when the view with the given tag and class cannot be found.
+    */
+-  public final class ViewNotFound<ViewType: UIView>: GenericException<(tag: Int, type: ViewType.Type)> {
++  public final class ViewNotFound<ViewType: UIView>: GenericException<(tag: Int, type: ViewType.Type)>, @unchecked Sendable {
+     override public var reason: String {
+       "Unable to find the '\(param.type)' view with tag '\(param.tag)'"
+     }
+   }
+-  public final class SwiftUIViewNotFound<ViewType: ExpoSwiftUIView>: GenericException<(tag: Int, type: ViewType.Type)> {
++  public final class SwiftUIViewNotFound<ViewType: ExpoSwiftUIView>: GenericException<(tag: Int, type: ViewType.Type)>, @unchecked Sendable {
+     override public var reason: String {
+       "Unable to find the '\(param.type)' view with tag '\(param.tag)'"
+     }
+@@ -69,7 +69,7 @@ public struct Exceptions {
+    of parameters that have a default value or an optional type) through the maximum (total parameters).
+    Thrown by the bindings the Expo Modules macros synthesize for `@JS` functions.
+    */
+-  public final class ArgumentsRangeMismatch: GenericException<(functionName: String, received: Int, required: Int, maximum: Int)> {
++  public final class ArgumentsRangeMismatch: GenericException<(functionName: String, received: Int, required: Int, maximum: Int)>, @unchecked Sendable {
+     override public var reason: String {
+       if param.required == param.maximum {
+         return "'\(param.functionName)' takes \(param.maximum) argument(s), but received \(param.received)"
+@@ -81,7 +81,7 @@ public struct Exceptions {
+   /**
+    An exception to throw when there is no module implementing the `EXFileSystemInterface` interface.
+    */
+-  public final class FileSystemModuleNotFound: Exception {
++  public final class FileSystemModuleNotFound: Exception, @unchecked Sendable {
+     override public var reason: String {
+       "FileSystem module not found, make sure 'expo-file-system' is linked correctly"
+     }
+@@ -92,7 +92,7 @@ public struct Exceptions {
+    - Note: This should never happen since the module is a part of `expo-modules-core`, but for compatibility reasons
+    `appContext.permissions` is still an optional value.
+    */
+-  public final class PermissionsModuleNotFound: Exception {
++  public final class PermissionsModuleNotFound: Exception, @unchecked Sendable {
+     override public var reason: String {
+       "Permissions module not found"
+     }
+diff --git a/node_modules/expo-modules-core/ios/Core/Exceptions/UnexpectedException.swift b/node_modules/expo-modules-core/ios/Core/Exceptions/UnexpectedException.swift
+index 283ed49..48d59c8 100644
+--- a/node_modules/expo-modules-core/ios/Core/Exceptions/UnexpectedException.swift
++++ b/node_modules/expo-modules-core/ios/Core/Exceptions/UnexpectedException.swift
+@@ -3,7 +3,7 @@
+ /**
+  Exception wrapper used to handle unexpected internal native errors.
+  */
+-public class UnexpectedException: Exception {
++public class UnexpectedException: Exception, @unchecked Sendable {
+   private let errorDescription: String
+ 
+   public init(_ error: Error, file: String = #fileID, line: UInt = #line, function: String = #function) {
+diff --git a/node_modules/expo-modules-core/ios/Core/Logging/PersistentFileLog.swift b/node_modules/expo-modules-core/ios/Core/Logging/PersistentFileLog.swift
+index 33b6873..9f21a15 100644
+--- a/node_modules/expo-modules-core/ios/Core/Logging/PersistentFileLog.swift
++++ b/node_modules/expo-modules-core/ios/Core/Logging/PersistentFileLog.swift
+@@ -2,8 +2,8 @@
+ 
+ import Foundation
+ 
+-public typealias PersistentFileLogFilter = (String) -> Bool
+-public typealias PersistentFileLogCompletionHandler = (Error?) -> Void
++public typealias PersistentFileLogFilter = @Sendable (String) -> Bool
++public typealias PersistentFileLogCompletionHandler = @Sendable (Error?) -> Void
+ 
+ /**
+  * A thread-safe class for reading and writing line-separated strings to a flat file.
+@@ -26,7 +26,7 @@ public typealias PersistentFileLogCompletionHandler = (Error?) -> Void
+  *
+  */
+ @preconcurrency
+-public class PersistentFileLog {
++public class PersistentFileLog: @unchecked Sendable {
+   private static let EXPO_MODULES_CORE_LOG_QUEUE_LABEL = "dev.expo.modules.core.logging"
+   private static let serialQueue = DispatchQueue(label: EXPO_MODULES_CORE_LOG_QUEUE_LABEL)
+ 
+diff --git a/node_modules/expo-modules-core/ios/Core/ModuleHolder.swift b/node_modules/expo-modules-core/ios/Core/ModuleHolder.swift
+index d9e70e5..1ef453f 100644
+--- a/node_modules/expo-modules-core/ios/Core/ModuleHolder.swift
++++ b/node_modules/expo-modules-core/ios/Core/ModuleHolder.swift
+@@ -205,13 +205,13 @@ public final class ModuleHolder {
+ 
+   // MARK: - Exceptions
+ 
+-  internal class ModuleNotFoundException: GenericException<String> {
++  internal class ModuleNotFoundException: GenericException<String>, @unchecked Sendable {
+     override var reason: String {
+       "Module '\(param)' not found"
+     }
+   }
+ 
+-  internal class FunctionNotFoundException: GenericException<(functionName: String, moduleName: String)> {
++  internal class FunctionNotFoundException: GenericException<(functionName: String, moduleName: String)>, @unchecked Sendable {
+     override var reason: String {
+       "Function '\(param.functionName)' not found in module '\(param.moduleName)'"
+     }
+diff --git a/node_modules/expo-modules-core/ios/Uuidv5/Exceptions.swift b/node_modules/expo-modules-core/ios/Uuidv5/Exceptions.swift
+index 0419477..201b4b6 100644
+--- a/node_modules/expo-modules-core/ios/Uuidv5/Exceptions.swift
++++ b/node_modules/expo-modules-core/ios/Uuidv5/Exceptions.swift
+@@ -1,6 +1,6 @@
+ import Foundation
+ 
+-internal class InvalidNamespaceException: GenericException<String> {
++internal class InvalidNamespaceException: GenericException<String>, @unchecked Sendable {
+   override var reason: String {
+     "Namespace: `\(param)` is not a valid namespace. Namespace should be a valid UUID string"
+   }
