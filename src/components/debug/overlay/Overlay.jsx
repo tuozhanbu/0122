@@ -192,10 +192,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 2147483647,
-        shadowColor: '#0F172A',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.24,
-        shadowRadius: 12,
-        elevation: 20,
+        boxShadow: '0px 8px 12px rgba(15, 23, 42, 0.24)',
     },
 });

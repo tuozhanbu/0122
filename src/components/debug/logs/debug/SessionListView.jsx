@@ -10,11 +10,7 @@ import { LogActionButton } from '@/components/debug/logs/LogControls';
 import { formatDebugLogSessionLabel } from '@/components/debug/logs/formatEntries';
 
 const surfaceShadow = {
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 2,
+    boxShadow: '0px 4px 12px rgba(15, 23, 42, 0.08)',
 };
 
 function DebugSessionRow({ session, onPress, onDelete, disabled }) {

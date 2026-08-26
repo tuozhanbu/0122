@@ -23,8 +23,12 @@ export default function Toast({ message, bottom, top }) {
 
     return (
         <Animated.View
-            pointerEvents="none"
-            style={[styles.toast, { bottom, top, opacity: opacityRef.current }]}
+            style={[styles.toast, {
+                pointerEvents: 'none',
+                bottom,
+                top,
+                opacity: opacityRef.current,
+            }]}
         >
             <Text style={styles.toastText}>{message}</Text>
         </Animated.View>

@@ -23,11 +23,7 @@ const DEBUG_TAB_TOOLS = 'tools';
 const DEBUG_TOAST_VISIBLE_MS = 1400;
 
 const headerShadow = {
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 2,
+    boxShadow: '0px 4px 12px rgba(15, 23, 42, 0.08)',
 };
 
 function DebugTabButton({ active, icon, label, onPress }) {
@@ -78,8 +74,11 @@ export default function AppDebugPanel() {
 
     return (
         <View
-            pointerEvents={visible ? 'auto' : 'none'}
-            style={[styles.panel, !visible && styles.panelHidden]}
+            style={[
+                styles.panel,
+                !visible && styles.panelHidden,
+                { pointerEvents: visible ? 'auto' : 'none' },
+            ]}
         >
             {visible && <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />}
             <View style={[styles.headerArea, { paddingTop: insets.top }]}>
@@ -87,34 +86,22 @@ export default function AppDebugPanel() {
                     <Text style={styles.title}>Debug</Text>
                 </View>
             </View>
-            <AppDebugToastProvider showToast={showToast}>
-                <View style={styles.body}>
-                    <View
-                        pointerEvents={activeTab === DEBUG_TAB_INFO ? 'auto' : 'none'}
-                        style={[styles.tabContent, activeTab !== DEBUG_TAB_INFO && styles.inactiveTabContent]}
-                    >
+            <View style={styles.body}>
+                <AppDebugToastProvider showToast={showToast}>
+                    {activeTab === DEBUG_TAB_INFO && (
                         <AppDebugInfoView />
-                    </View>
-                    <View
-                        pointerEvents={activeTab === DEBUG_TAB_STORAGE ? 'auto' : 'none'}
-                        style={[styles.tabContent, activeTab !== DEBUG_TAB_STORAGE && styles.inactiveTabContent]}
-                    >
+                    )}
+                    {activeTab === DEBUG_TAB_STORAGE && (
                         <AppDebugStorageView />
-                    </View>
-                    <View
-                        pointerEvents={activeTab === DEBUG_TAB_TOOLS ? 'auto' : 'none'}
-                        style={[styles.tabContent, activeTab !== DEBUG_TAB_TOOLS && styles.inactiveTabContent]}
-                    >
+                    )}
+                    {activeTab === DEBUG_TAB_TOOLS && (
                         <AppDebugToolsView />
-                    </View>
-                    <View
-                        pointerEvents={activeTab === DEBUG_TAB_LOGS ? 'auto' : 'none'}
-                        style={[styles.tabContent, activeTab !== DEBUG_TAB_LOGS && styles.inactiveTabContent]}
-                    >
+                    )}
+                    {activeTab === DEBUG_TAB_LOGS && (
                         <DebugLogsView />
-                    </View>
-                </View>
-            </AppDebugToastProvider>
+                    )}
+                </AppDebugToastProvider>
+            </View>
             <View style={[
                 styles.tabBar,
                 { height: 58 + insets.bottom, paddingBottom: Math.max(insets.bottom, 6) },
@@ -182,13 +169,6 @@ const styles = StyleSheet.create({
     },
     body: {
         flex: 1,
-    },
-    tabContent: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: '#EEF2F6',
-    },
-    inactiveTabContent: {
-        opacity: 0,
     },
     tabBar: {
         borderTopWidth: StyleSheet.hairlineWidth,

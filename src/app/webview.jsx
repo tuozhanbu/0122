@@ -346,7 +346,7 @@ export default function WebViewScreen() {
                 )}
                 {webview}
                 {showInitOverlay && (
-                    <View style={styles.initOverlay} pointerEvents="none">
+                    <View style={[styles.initOverlay, { pointerEvents: 'none' }]}>
                         <ActivityIndicator size="large" color="#FFFFFF" />
                         <Text style={styles.jumpOverlayText}>Loading...</Text>
                     </View>
