@@ -68,15 +68,12 @@ export default function RootLayout() {
     }, [pathname]);
 
     useEffect(() => {
-        if (Platform.OS === 'web') return;
-        const routeAllowsDeviceOrientation = pathname.startsWith('/webview') && !appDebug.panelVisible;
-        const orientationTask = routeAllowsDeviceOrientation
-            ? ScreenOrientation.unlockAsync()
-            : ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+        if (Platform.OS === 'web' || pathname.startsWith('/webview')) return;
+        const orientationTask = ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
         orientationTask.catch((error) => {
             logger.warn('screen orientation change failed', { pathname, error });
         });
-    }, [appDebug.panelVisible, pathname]);
+    }, [pathname]);
 
     return (
         <>

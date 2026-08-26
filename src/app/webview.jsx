@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams } from 'expo-router';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
@@ -23,6 +24,7 @@ import {
     extractEntryConfig,
     resolveChromeStyle,
 } from '@/services/webView/entryUrl';
+import { isWebViewScreenOrientation } from '@/services/webView/presentationConfig';
 import { buildNativeSafeAreaEvent } from '@/services/webView/injectedScripts/safeArea';
 import { handleBridgeMessage } from '@/services/webView/messageActions';
 import { openTelegramDestinationOutsideWebView } from '@/services/webView/telegramShareNavigation';
@@ -74,12 +76,19 @@ export default function WebViewScreen() {
         XSafeTop,
         XBackgroundColor,
         XStatusBarStyle,
+        XScreenOrientation,
         XSafeBottomStatus,
         XSafeTopStatus,
     } = xParams;
 
-    // 全屏状态（可动态切换）
+    // URL 参数仅用于初始化；Bridge 可以在当前 WebView 会话内整体更新展示配置。
     const [fullScreen, setFullScreen] = useState(XFullScreen === '1');
+    const [showFloatButton, setShowFloatButton] = useState(XShowFloatButton === '1');
+    const [hasSafeBottom, setHasSafeBottom] = useState(XSafeBottom === '1');
+    const [hasSafeTop, setHasSafeTop] = useState(XSafeTop === '1');
+    const [backgroundColorValue, setBackgroundColorValue] = useState(XBackgroundColor);
+    const [statusBarStyle, setStatusBarStyle] = useState(XStatusBarStyle);
+    const [screenOrientation, setScreenOrientation] = useState(XScreenOrientation);
 
     // WebView 引用 & 内部历史状态
     const webViewRef = useRef(null);
@@ -90,9 +99,11 @@ export default function WebViewScreen() {
     const [retryingLoad, setRetryingLoad] = useState(false);
     const appDebug = useAppDebugSnapshot();
 
-    const showFloatButton = XShowFloatButton === '1';
-    const hasSafeBottom = XSafeBottom === '1';
-    const hasSafeTop = XSafeTop === '1';
+    const screenOrientationQueueRef = useRef(Promise.resolve());
+    const debugPanelVisibleRef = useRef(appDebug.panelVisible);
+    const previousDebugPanelVisibilityRef = useRef(null);
+    debugPanelVisibleRef.current = appDebug.panelVisible;
+
     const webViewDebug = appDebug.enabled;
     const vpNativeBridgeSource = useMemo(() => (
         buildVpNativeBridge(webViewDebug)
@@ -141,8 +152,74 @@ export default function WebViewScreen() {
 
     // 将 ARGB 16进制（0xAARRGGBB）转为 rgba(r,g,b,a) 字符串，并计算状态栏样式
     const { backgroundColor, barStyle } = useMemo(() => {
-        return resolveChromeStyle(XBackgroundColor, XStatusBarStyle);
-    }, [XBackgroundColor, XStatusBarStyle]);
+        return resolveChromeStyle(backgroundColorValue, statusBarStyle);
+    }, [backgroundColorValue, statusBarStyle]);
+
+    const enqueueScreenOrientationChange = useCallback((changeScreenOrientation) => {
+        const queuedChange = screenOrientationQueueRef.current.then(
+            changeScreenOrientation,
+            changeScreenOrientation,
+        );
+        screenOrientationQueueRef.current = queuedChange.then(
+            () => undefined,
+            () => undefined,
+        );
+        return queuedChange;
+    }, []);
+
+    const applyDeviceScreenOrientation = useCallback((nextScreenOrientation) => {
+        if (nextScreenOrientation === 'auto') {
+            return ScreenOrientation.unlockAsync();
+        }
+        if (nextScreenOrientation === 'portrait') {
+            return ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+        }
+        return ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+    }, []);
+
+    const applyConfiguredScreenOrientation = useCallback((nextScreenOrientation) => {
+        if (Platform.OS === 'web') {
+            return Promise.reject(new Error('screen orientation is unavailable on web'));
+        }
+        if (!isWebViewScreenOrientation(nextScreenOrientation)) {
+            return Promise.reject(new Error('invalid screen orientation'));
+        }
+
+        return enqueueScreenOrientationChange(() => {
+            if (debugPanelVisibleRef.current) {
+                throw new Error('screen orientation is unavailable while debug panel is visible');
+            }
+            return applyDeviceScreenOrientation(nextScreenOrientation);
+        });
+    }, [applyDeviceScreenOrientation, enqueueScreenOrientationChange]);
+
+    const applyWebViewPresentation = useCallback(async (webViewPresentation) => {
+        await applyConfiguredScreenOrientation(webViewPresentation.screenOrientation);
+        setFullScreen(webViewPresentation.fullScreen);
+        setShowFloatButton(webViewPresentation.showFloatButton);
+        setHasSafeTop(webViewPresentation.topSafeAreaEnabled);
+        setHasSafeBottom(webViewPresentation.bottomSafeAreaEnabled);
+        setBackgroundColorValue(webViewPresentation.backgroundColor);
+        setStatusBarStyle(webViewPresentation.statusBarStyle);
+        setScreenOrientation(webViewPresentation.screenOrientation);
+    }, [applyConfiguredScreenOrientation]);
+
+    useEffect(() => {
+        const previousDebugPanelVisibility = previousDebugPanelVisibilityRef.current;
+        previousDebugPanelVisibilityRef.current = appDebug.panelVisible;
+        if (Platform.OS === 'web' || previousDebugPanelVisibility === appDebug.panelVisible) {
+            return;
+        }
+
+        const orientationTask = appDebug.panelVisible
+            ? enqueueScreenOrientationChange(() => (
+                ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP)
+            ))
+            : applyConfiguredScreenOrientation(screenOrientation);
+        orientationTask.catch((error) => {
+            logger.warn('webview initial screen orientation change failed', { error });
+        });
+    }, [appDebug.panelVisible, applyConfiguredScreenOrientation, enqueueScreenOrientationChange, screenOrientation]);
 
     // 切换全屏
     const toggleFullScreen = useCallback(() => {
@@ -174,12 +251,13 @@ export default function WebViewScreen() {
                 runGoogleAuthSession,
                 runTelegramAuthSession,
                 injectNativeSafeArea,
+                applyWebViewPresentation,
                 logger,
             });
         } catch (e) {
             logger.warn('message parse failed', { error: e });
         }
-    }, [injectNativeSafeArea, postWebViewMessage, runGoogleAuthSession, runTelegramAuthSession]);
+    }, [applyWebViewPresentation, injectNativeSafeArea, postWebViewMessage, runGoogleAuthSession, runTelegramAuthSession]);
 
     const allowWebViewNavigation = useCallback(({ url: requestedUrl }) => {
         return !openTelegramDestinationOutsideWebView(requestedUrl);

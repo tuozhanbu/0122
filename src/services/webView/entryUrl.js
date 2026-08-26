@@ -6,6 +6,7 @@ const ROUTE_PARAM_KEYS = [
     'XSafeTop',
     'XBackgroundColor',
     'XStatusBarStyle',
+    'XScreenOrientation',
     'XSafeBottomStatus',
     'XSafeTopStatus',
 ];
@@ -21,6 +22,7 @@ const DEFAULT_ROUTE_PARAMS = {
     // 'dark'  -> 强制深色图标（适合浅色背景，如白色）
     // 'light' -> 强制白色图标（适合深色背景）
     XStatusBarStyle: 'auto',
+    XScreenOrientation: 'auto',
     XSafeBottomStatus: '0',
     XSafeTopStatus: '0',
 };

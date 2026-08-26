@@ -5,6 +5,7 @@ import {
     reportAttributionEvent,
 } from '@/services/webView/attributionMessages';
 import { parseBridgeMessage } from '@/services/webView/bridgeMessage';
+import { parseWebViewPresentation } from '@/services/webView/presentationConfig';
 
 export async function handleBridgeMessage({
     rawMessage,
@@ -13,6 +14,7 @@ export async function handleBridgeMessage({
     runGoogleAuthSession,
     runTelegramAuthSession,
     injectNativeSafeArea,
+    applyWebViewPresentation,
     logger,
 }) {
     const message = parseBridgeMessage(rawMessage);
@@ -56,6 +58,23 @@ export async function handleBridgeMessage({
 
     if (action === 'openTelegramAuth' && params?.url) {
         runTelegramAuthSession(params.url);
+        return;
+    }
+
+    if (action === 'applyWebViewPresentation') {
+        const webViewPresentation = parseWebViewPresentation(params);
+        if (!webViewPresentation) {
+            logger.warn('webview presentation rejected', {
+                reason: 'invalid_params',
+            });
+            return;
+        }
+
+        try {
+            await applyWebViewPresentation(webViewPresentation);
+        } catch (error) {
+            logger.warn('webview presentation not applied', { error });
+        }
         return;
     }
 
