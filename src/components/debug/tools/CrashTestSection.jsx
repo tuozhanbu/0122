@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
     Alert,
+    Platform,
     StyleSheet,
     Text,
     View,
@@ -8,7 +9,11 @@ import {
 import AppDebugToolButton from '@/components/debug/tools/ToolButton';
 import { useAppDebugToast } from '@/components/debug/panel/ToastContext';
 import { captureClientException } from '@/services/logging/clientErrors/capture';
-import { triggerNativeCrash } from '@/services/logging/nativeCrashReports';
+import {
+    triggerNativeCppExceptionTest,
+    triggerNativeFatalCrashTest,
+    triggerNativeObjectiveCExceptionTest,
+} from '@/services/logging/clientErrors/nativeCrash/reports';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('AppDebugCrashTestSection');
@@ -104,14 +109,40 @@ export default function AppDebugCrashTestSection({ disabled }) {
         });
     };
 
-    const triggerNativeCrashTest = () => {
+    const triggerNativeFatalCrash = () => {
         confirmDangerousAction({
-            title: 'Trigger Native Crash?',
-            message: 'This terminates the app in an Expo Dev Client or release build. Expo Go cannot run this test.',
+            title: 'Trigger Native Fatal Crash?',
+            message: 'This terminates the app in an Expo Dev Client or release build. It verifies the fatal signal or runtime crash collection path.',
             action: () => {
-                triggerNativeCrash().catch((error) => {
+                triggerNativeFatalCrashTest().catch((error) => {
                     logger.warn('native crash test unavailable', { error });
                     Alert.alert('Native Test Unavailable', error?.message ?? 'Use an Expo Dev Client or release build.');
+                });
+            },
+        });
+    };
+
+    const triggerNativeObjectiveCException = () => {
+        confirmDangerousAction({
+            title: 'Trigger Objective-C Exception?',
+            message: 'This terminates the iOS app and verifies that the Objective-C exception name and reason are collected.',
+            action: () => {
+                triggerNativeObjectiveCExceptionTest().catch((error) => {
+                    logger.warn('Objective-C exception test unavailable', { error });
+                    Alert.alert('Native Test Unavailable', error?.message ?? 'Use an iOS Dev Client or release build.');
+                });
+            },
+        });
+    };
+
+    const triggerNativeCppException = () => {
+        confirmDangerousAction({
+            title: 'Trigger C++ Exception?',
+            message: 'This terminates the iOS app and verifies that the C++ exception type and reason are collected.',
+            action: () => {
+                triggerNativeCppExceptionTest().catch((error) => {
+                    logger.warn('C++ exception test unavailable', { error });
+                    Alert.alert('Native Test Unavailable', error?.message ?? 'Use an iOS Dev Client or release build.');
                 });
             },
         });
@@ -125,10 +156,30 @@ export default function AppDebugCrashTestSection({ disabled }) {
                 danger
                 disabled={disabled}
                 icon="hardware-chip-outline"
-                title="Native Crash"
-                detail="Crash in Android/iOS native code"
-                onPress={triggerNativeCrashTest}
+                title="Native Fatal Crash"
+                detail="iOS SIGABRT / Android runtime crash"
+                onPress={triggerNativeFatalCrash}
             />
+            {Platform.OS === 'ios' && (
+                <>
+                    <AppDebugToolButton
+                        danger
+                        disabled={disabled}
+                        icon="logo-apple"
+                        title="Objective-C Exception"
+                        detail="Verify NSException name and reason"
+                        onPress={triggerNativeObjectiveCException}
+                    />
+                    <AppDebugToolButton
+                        danger
+                        disabled={disabled}
+                        icon="code-slash-outline"
+                        title="C++ Exception"
+                        detail="Verify C++ exception type and reason"
+                        onPress={triggerNativeCppException}
+                    />
+                </>
+            )}
             <AppDebugToolButton
                 danger
                 disabled={disabled}

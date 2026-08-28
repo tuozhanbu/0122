@@ -16,10 +16,11 @@ import { clearAttributionRuntimeState } from '@/services/attribution/reporter';
 import { clearInstallIdMemoryCache } from '@/services/installIdentity';
 import { clearBreadcrumbs } from '@/services/logging/breadcrumbs';
 import { clearClientErrorRuntimeContext } from '@/services/logging/clientErrors/runtime';
+import { clearNativeCrashContext } from '@/services/logging/clientErrors/nativeCrash/context';
 import { waitForActiveClientErrorUpload } from '@/services/logging/clientErrors/uploadSchedule';
 import { clearDebugLogFiles } from '@/services/logging/debugLogs/sessions';
 import { clearAllLogFiles } from '@/services/logging/jsonlFiles';
-import { clearPendingNativeCrashReports } from '@/services/logging/nativeCrashReports';
+import { clearPendingNativeCrashReports } from '@/services/logging/clientErrors/nativeCrash/reports';
 import { invalidateDeferredOpenUrlExecutions } from '@/services/openUrlJump';
 import { clearAllOrThrow, setItemOrThrow } from '@/utils/storage';
 
@@ -37,6 +38,7 @@ const clearAppRuntimeData = async () => {
     clearAppDebugRuntimeInstallId();
     clearBreadcrumbs();
     clearClientErrorRuntimeContext();
+    await clearNativeCrashContext();
     useAppStore.getState().clearBootstrapBase();
     useUserStore.getState().clearUserRuntimeState();
     useLangStore.getState().clearLangRuntimeState();

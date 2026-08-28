@@ -1,4 +1,5 @@
 import { MAX_CLIENT_ERROR_BREADCRUMBS } from '@/services/logging/clientErrors/constants';
+import { setNativeCrashBreadcrumbs } from '@/services/logging/clientErrors/nativeCrash/context';
 import { sanitizeLogValue } from '@/services/logging/redaction/logEntries';
 
 const BREADCRUMB_RUNTIME_STATE_KEY = '__APP_ERROR_BREADCRUMBS__';
@@ -35,6 +36,8 @@ export const recordBreadcrumb = (breadcrumb) => {
             runtimeState.entries.length - MAX_CLIENT_ERROR_BREADCRUMBS,
         );
     }
+
+    setNativeCrashBreadcrumbs(runtimeState.entries);
 };
 
 export const readBreadcrumbs = () => {
@@ -43,4 +46,5 @@ export const readBreadcrumbs = () => {
 
 export const clearBreadcrumbs = () => {
     runtimeState.entries = [];
+    setNativeCrashBreadcrumbs(runtimeState.entries);
 };

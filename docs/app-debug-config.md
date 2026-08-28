@@ -114,7 +114,9 @@
 - `Unhandled Promise`：触发未处理 Promise rejection，验证 React Native promise rejection tracking；记录可能有短暂延迟。
 - `Render Error`：在 React render 阶段抛错，验证 `ClientErrorBoundary`。
 - `Manual Error Report`：不闪退，直接写入一条客户端异常记录，用于验证本地文件、`Logs -> Errors` 和后续上报链路。
-- `Native Crash`：通过原生模块触发 Android RuntimeException / iOS fatal signal，验证 ACRA / KSCrash 到自建 API 的链路。
+- `Native Fatal Crash`：通过原生模块触发 Android RuntimeException / iOS `SIGABRT`，验证 ACRA / KSCrash 的 fatal crash 采集、落盘和上传链路。
+- `Objective-C Exception`：仅 iOS，通过原生模块抛出未捕获的 `NSException`，验证异常名称与 reason 是否进入崩溃报告。
+- `C++ Exception`：仅 iOS，通过原生模块抛出未捕获的 `std::runtime_error`，验证 C++ 异常类型与 reason 是否进入崩溃报告。
 
 Expo Go / 纯 JS 侧不能可靠模拟 native 进程崩溃。需要验证真实 native crash 时，应使用包含 `withNativeCrashReports` config plugin 的 dev client 或正式包。
 

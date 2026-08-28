@@ -1,7 +1,7 @@
 import { APP_STORAGE_KEYS } from '@/constants/storageKeys';
 import { CLIENT_ERROR_UPLOAD_RETRY_DELAY_MS } from '@/services/logging/clientErrors/constants';
 import { flushPendingClientErrors } from '@/services/logging/clientErrors/upload';
-import { flushPendingNativeCrashReports } from '@/services/logging/nativeCrashReports';
+import { flushPendingNativeCrashReports } from '@/services/logging/clientErrors/nativeCrash/reports';
 import { removeItemOrThrow, setItemOrThrow, tryGetItem } from '@/utils/storage';
 import { createDebugLogger } from '@/utils/logger';
 

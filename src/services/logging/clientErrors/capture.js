@@ -7,6 +7,7 @@ import {
 } from '@/services/logging/clientErrors/runtime';
 import { FATAL_CLIENT_ERROR_CAPTURE_WAIT_MS } from '@/services/logging/clientErrors/constants';
 import { recordBreadcrumb } from '@/services/logging/breadcrumbs';
+import { setNativeCrashRoute } from '@/services/logging/clientErrors/nativeCrash/context';
 import { sanitizeLogValue } from '@/services/logging/redaction/logEntries';
 import { createLogger } from '@/utils/logger';
 
@@ -14,6 +15,7 @@ const logger = createLogger('ClientErrorCapture');
 
 export const setClientErrorRoute = (route) => {
     setClientErrorCurrentRoute(route);
+    setNativeCrashRoute(route);
     recordBreadcrumb({
         category: 'navigation',
         name: 'route.changed',

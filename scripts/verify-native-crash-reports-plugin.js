@@ -84,6 +84,7 @@ class MainApplication : Application(), ReactApplication {
 
     const patched = _internal.applyAndroidPatch(mainApplication);
     assertContainsOnce(patched, 'import org.acra.ACRA', 'ACRA import');
+    assertContainsOnce(patched, 'import org.json.JSONException', 'JSON exception import');
     assertContainsOnce(patched, 'class LocalCrashReportSenderFactory', 'Android crash sender');
     assertContainsOnce(patched, 'override fun attachBaseContext(base: Context)', 'Android attachBaseContext');
     assertContainsOnce(patched, 'ACRA.init(', 'ACRA init');
@@ -194,6 +195,141 @@ const verifyNativeCrashModuleClearOperations = () => {
     );
 };
 
+const verifyNativeCrashTestOperations = () => {
+    assert.equal(_internal.IOS_NATIVE_MODULE_FILE, 'AppNativeCrashReports.mm', 'iOS crash module must compile as Objective-C++');
+    assert.equal(_internal.IOS_LEGACY_NATIVE_MODULE_FILE, 'AppNativeCrashReports.m', 'iOS legacy crash module must be identified for migration');
+    assertContainsOnce(
+        _internal.ANDROID_NATIVE_MODULE_SOURCE,
+        'fun triggerNativeFatalCrash()',
+        'Android fatal crash test operation',
+    );
+    assertContainsOnce(
+        _internal.IOS_NATIVE_MODULE_SOURCE,
+        'RCT_EXPORT_METHOD(triggerNativeFatalCrash)',
+        'iOS fatal crash test operation',
+    );
+    assertContainsOnce(
+        _internal.IOS_NATIVE_MODULE_SOURCE,
+        'RCT_EXPORT_METHOD(triggerNativeObjectiveCException)',
+        'iOS Objective-C exception test operation',
+    );
+    assertContainsOnce(
+        _internal.IOS_NATIVE_MODULE_SOURCE,
+        'RCT_EXPORT_METHOD(triggerNativeCppException)',
+        'iOS C++ exception test operation',
+    );
+    assertContainsOnce(
+        _internal.IOS_NATIVE_MODULE_SOURCE,
+        '#include <stdexcept>',
+        'iOS C++ exception dependency',
+    );
+};
+
+const verifyIosCrashMonitorCoverage = () => {
+    const source = _internal.applyIosPatch(`import Expo
+
+@main
+class AppDelegate: ExpoAppDelegate {
+  override func application(
+    _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+  ) -> Bool {
+    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+}
+`);
+
+    [
+        '.machException',
+        '.signal',
+        '.cppException',
+        '.nsException',
+        '.memoryTermination',
+        'config.enableSwapCxaThrow = true',
+    ].forEach((monitor) => {
+        assert.ok(source.includes(monitor), `iOS crash installer should enable ${monitor}`);
+    });
+};
+
+const verifyNativeCrashContextSync = () => {
+    assertContainsOnce(
+        _internal.IOS_NATIVE_MODULE_SOURCE,
+        'RCT_REMAP_METHOD(setCrashContext,',
+        'iOS native crash context operation',
+    );
+    assertContainsOnce(
+        _internal.IOS_NATIVE_MODULE_SOURCE,
+        '[crash setUserInfoString:route forKey:AppNativeCrashRouteUserInfoKey];',
+        'iOS native crash route storage',
+    );
+    assertContainsOnce(
+        _internal.IOS_NATIVE_MODULE_SOURCE,
+        '[crash setUserInfoString:serializedBreadcrumbs[index] forKey:key];',
+        'iOS native crash breadcrumb storage',
+    );
+    assertContainsOnce(
+        _internal.IOS_NATIVE_MODULE_SOURCE,
+        'static NSUInteger const AppNativeCrashUserInfoStringByteLimit = 1024;',
+        'iOS native crash user information byte limit',
+    );
+    assertContainsOnce(
+        _internal.IOS_NATIVE_MODULE_SOURCE,
+        '[crash setUserInfoString:serializedEnvironment forKey:AppNativeCrashEnvironmentUserInfoKey];',
+        'iOS native crash environment snapshot',
+    );
+    assertContainsOnce(
+        _internal.IOS_NATIVE_MODULE_SOURCE,
+        '#import <KSCrash/KSCrash+UserInfo.h>',
+        'iOS native crash per-key user information API',
+    );
+};
+
+const verifyNativeCrashDiagnosticBounds = () => {
+    assertContainsOnce(
+        _internal.IOS_NATIVE_MODULE_SOURCE,
+        'static NSUInteger const AppNativeCrashStackFrameLimit = 40;',
+        'iOS native crash stack frame limit',
+    );
+    assertContainsOnce(
+        _internal.IOS_NATIVE_MODULE_SOURCE,
+        'static NSUInteger const AppNativeCrashStackCharacterLimit = 12000;',
+        'iOS native crash stack size limit',
+    );
+    assertContainsOnce(
+        _internal.IOS_NATIVE_MODULE_SOURCE,
+        '@"diagnostic": AppNativeCrashJsonValue(AppNativeCrashDiagnostic(rawReport, error, thread))',
+        'iOS native crash diagnostic summary',
+    );
+    assertContainsOnce(
+        _internal.IOS_NATIVE_MODULE_SOURCE,
+        '@[ @"binary_images" ]',
+        'iOS native crash referenced binary images',
+    );
+    assertContainsOnce(
+        _internal.IOS_NATIVE_MODULE_SOURCE,
+        'AppNativeCrashReadSysctlString("hw.machine")',
+        'iOS native crash hardware model snapshot',
+    );
+    assertContainsOnce(
+        _internal.IOS_NATIVE_MODULE_SOURCE,
+        'static_cast<char *>(malloc(valueSize))',
+        'iOS native crash Objective-C++ memory allocation',
+    );
+    assert.ok(!_internal.IOS_NATIVE_MODULE_SOURCE.includes('@"raw":'), 'iOS native crash reports must not persist the full raw report');
+    assert.ok(!_internal.ANDROID_ACRA_SOURCE.includes('ReportField.LOGCAT'), 'Android native crash reports must not collect logcat');
+    assert.ok(!_internal.ANDROID_ACRA_SOURCE.includes('ReportField.THREAD_DETAILS'), 'Android native crash reports must not collect all thread details');
+    assertContainsOnce(
+        _internal.ANDROID_NATIVE_MODULE_SOURCE,
+        'fun setCrashContext(crashContext: ReadableMap, promise: Promise)',
+        'Android native crash context operation',
+    );
+    assertContainsOnce(
+        _internal.ANDROID_ACRA_SOURCE,
+        'private const val stackTraceCharacterLimit = 12000',
+        'Android native crash stack size limit',
+    );
+};
+
 const run = () => {
     verifyIosAppDelegatePatch();
     verifyAndroidMainApplicationApplyShape();
@@ -201,6 +337,10 @@ const run = () => {
     verifyAndroidMainActivityTemplateShape();
     verifyGradleAndPodPatches();
     verifyNativeCrashModuleClearOperations();
+    verifyNativeCrashTestOperations();
+    verifyIosCrashMonitorCoverage();
+    verifyNativeCrashContextSync();
+    verifyNativeCrashDiagnosticBounds();
     console.log('Native crash reports plugin verification passed.');
 };
 
