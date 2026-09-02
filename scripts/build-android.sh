@@ -5,24 +5,23 @@ set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 ANDROID_DIR="$ROOT_DIR/android"
 CONFIGURATION=${CONFIGURATION:-Release}
-CLEAR=0
 BUILD_TYPE=""
 
-for arg in "$@"; do
+n=$#
+i=0
+while [ "$i" -lt "$n" ]; do
+  arg=$1
+  shift
   case "$arg" in
-    --clear|-c)
-      CLEAR=1
-      ;;
     apk|aab)
       BUILD_TYPE="$arg"
       ;;
     *)
-      printf 'Error: Unknown argument: %s\n' "$arg" >&2
-      exit 1
+      set -- "$@" "$arg"
       ;;
   esac
+  i=$((i + 1))
 done
-
 BUILD_TYPE=${BUILD_TYPE:-apk}
 
 log() {
@@ -64,29 +63,37 @@ install_js_dependencies() {
   fail "No supported lockfile found. Expected package-lock.json or yarn.lock."
 }
 
-ensure_android_project() {
-  if [ -d "$ANDROID_DIR" ]; then
-    return
-  fi
-
+run_expo_prebuild() {
   need_cmd npx
-  log "android directory not found. Running Expo prebuild..."
+
   (
     cd "$ROOT_DIR"
-    npx expo prebuild -p android
-  )
-}
 
-sync_android_project() {
-  if [ "${SYNC_EXPO_CONFIG:-1}" != "1" ]; then
-    return
-  fi
+    n=$#
+    i=0
+    user_set_clean=0
+    while [ "$i" -lt "$n" ]; do
+      arg=$1
+      shift
+      case "$arg" in
+        -c|--clear)
+          arg=--clean
+          ;;
+      esac
+      case "$arg" in
+        --clean|--no-clean)
+          user_set_clean=1
+          ;;
+      esac
+      set -- "$@" "$arg"
+      i=$((i + 1))
+    done
 
-  need_cmd npx
-  log "Syncing Expo Android config into native project..."
-  (
-    cd "$ROOT_DIR"
-    npx expo prebuild -p android --no-install
+    if [ "$user_set_clean" = 1 ]; then
+      npx expo prebuild -p android --no-install "$@"
+    else
+      npx expo prebuild -p android --no-install --no-clean "$@"
+    fi
   )
 }
 
@@ -142,16 +149,12 @@ if [ ! -d "$ROOT_DIR/node_modules" ] || [ "${FORCE_INSTALL:-0}" = "1" ]; then
   install_js_dependencies
 fi
 
-if [ "$CLEAR" = "1" ]; then
-  need_cmd npx
-  log "Running expo prebuild --clean for Android..."
-  (
-    cd "$ROOT_DIR"
-    npx expo prebuild --platform android --clean
-  )
-else
-  ensure_android_project
-  sync_android_project
+if [ ! -d "$ANDROID_DIR" ]; then
+  log "android directory not found. Running Expo prebuild..."
+  run_expo_prebuild "$@"
+elif [ "${SYNC_EXPO_CONFIG:-1}" = "1" ]; then
+  log "Syncing Expo Android config into native project..."
+  run_expo_prebuild "$@"
 fi
 
 if [ ! -f "$ANDROID_DIR/gradlew" ]; then

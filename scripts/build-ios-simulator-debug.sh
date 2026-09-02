@@ -8,19 +8,6 @@ CONFIGURATION=Debug
 DESTINATION=${DESTINATION:-generic/platform=iOS Simulator}
 RCT_USE_RN_DEP=${RCT_USE_RN_DEP:-0}
 RCT_USE_PREBUILT_RNCORE=${RCT_USE_PREBUILT_RNCORE:-0}
-CLEAR=0
-
-for arg in "$@"; do
-  case "$arg" in
-    --clear|-c)
-      CLEAR=1
-      ;;
-    *)
-      printf 'Error: Unknown argument: %s\n' "$arg" >&2
-      exit 1
-      ;;
-  esac
-done
 
 export RCT_USE_RN_DEP
 export RCT_USE_PREBUILT_RNCORE
@@ -73,29 +60,37 @@ install_js_dependencies() {
   fail "No supported lockfile found. Expected package-lock.json or yarn.lock."
 }
 
-ensure_ios_project() {
-  if [ -d "$IOS_DIR" ]; then
-    return
-  fi
-
+run_expo_prebuild() {
   need_cmd npx
-  log "ios directory not found. Running Expo prebuild..."
+
   (
     cd "$ROOT_DIR"
-    npx expo prebuild -p ios
-  )
-}
 
-sync_ios_project() {
-  if [ "${SYNC_EXPO_CONFIG:-1}" != "1" ]; then
-    return
-  fi
+    n=$#
+    i=0
+    user_set_clean=0
+    while [ "$i" -lt "$n" ]; do
+      arg=$1
+      shift
+      case "$arg" in
+        -c|--clear)
+          arg=--clean
+          ;;
+      esac
+      case "$arg" in
+        --clean|--no-clean)
+          user_set_clean=1
+          ;;
+      esac
+      set -- "$@" "$arg"
+      i=$((i + 1))
+    done
 
-  need_cmd npx
-  log "Syncing Expo iOS config into native project..."
-  (
-    cd "$ROOT_DIR"
-    npx expo prebuild -p ios --no-install
+    if [ "$user_set_clean" = 1 ]; then
+      npx expo prebuild -p ios --no-install "$@"
+    else
+      npx expo prebuild -p ios --no-install --no-clean "$@"
+    fi
   )
 }
 
@@ -156,26 +151,16 @@ if [ ! -d "$ROOT_DIR/node_modules" ] || [ "${FORCE_INSTALL:-0}" = "1" ]; then
   install_js_dependencies
 fi
 
-if [ "$CLEAR" = "1" ]; then
-  need_cmd npx
-  log "Running expo prebuild --clean for iOS..."
-  (
-    cd "$ROOT_DIR"
-    npx expo prebuild --platform ios --clean
-  )
-else
-  ensure_ios_project
-  sync_ios_project
+if [ ! -d "$IOS_DIR" ]; then
+  log "ios directory not found. Running Expo prebuild..."
+  run_expo_prebuild "$@"
+elif [ "${SYNC_EXPO_CONFIG:-1}" = "1" ]; then
+  log "Syncing Expo iOS config into native project..."
+  run_expo_prebuild "$@"
 fi
 
 if [ ! -f "$IOS_DIR/Podfile" ]; then
   fail "Podfile not found under ios/. Check Expo prebuild output first."
-fi
-
-WORKSPACE=$(resolve_workspace)
-
-if [ -z "$WORKSPACE" ]; then
-  fail "No .xcworkspace found under ios/. Run pod install successfully first."
 fi
 
 SCHEME_NAME=$(resolve_scheme)
@@ -200,6 +185,12 @@ log "Installing CocoaPods dependencies..."
   cd "$IOS_DIR"
   pod install
 )
+
+WORKSPACE=$(resolve_workspace)
+
+if [ -z "$WORKSPACE" ]; then
+  fail "No .xcworkspace found under ios/. pod install did not create a workspace."
+fi
 
 log "Building $SCHEME_NAME ($CONFIGURATION) for $DESTINATION without code signing..."
 rm -rf "$DERIVED_DATA_DIR"
