@@ -34,10 +34,10 @@ index 782219c..40c04ef 100644
      return param.type.allRawValues
        .map { "'\($0)'" }
 diff --git a/node_modules/expo-modules-core/ios/Core/Conversions.swift b/node_modules/expo-modules-core/ios/Core/Conversions.swift
-index 6fe4a2b..428a9b8 100644
+index 070b656..8d662fb 100644
 --- a/node_modules/expo-modules-core/ios/Core/Conversions.swift
 +++ b/node_modules/expo-modules-core/ios/Core/Conversions.swift
-@@ -227,7 +227,7 @@ public struct Conversions {
+@@ -244,7 +244,7 @@ public struct Conversions {
    /**
     An exception meaning that the number of arguments exceeds the limit.
     */
@@ -46,7 +46,7 @@ index 6fe4a2b..428a9b8 100644
      override var reason: String {
        "Native function expects \(formatPlural(param.limit, "argument")), but received \(param.count)"
      }
-@@ -236,7 +236,7 @@ public struct Conversions {
+@@ -253,7 +253,7 @@ public struct Conversions {
    /**
     An exception thrown when the native value cannot be converted to JavaScript value.
     */
@@ -55,7 +55,7 @@ index 6fe4a2b..428a9b8 100644
      override var code: String {
        "ERR_CONVERTING_TO_JS_FAILED"
      }
-@@ -248,7 +248,7 @@ public struct Conversions {
+@@ -265,7 +265,7 @@ public struct Conversions {
    /**
     An exception thrown when the JavaScript value cannot be converted to native value.
     */
@@ -64,7 +64,7 @@ index 6fe4a2b..428a9b8 100644
      override var code: String {
        "ERR_CONVERTING_TO_NATIVE_FAILED"
      }
-@@ -260,7 +260,7 @@ public struct Conversions {
+@@ -277,7 +277,7 @@ public struct Conversions {
    /**
     An exception that can be thrown by convertible types, when given value cannot be converted.
     */
@@ -73,7 +73,7 @@ index 6fe4a2b..428a9b8 100644
      public override var code: String {
        "ERR_CONVERTING_FAILED"
      }
-@@ -272,7 +272,7 @@ public struct Conversions {
+@@ -289,7 +289,7 @@ public struct Conversions {
    /**
     An exception that is thrown when given value cannot be cast.
     */
@@ -82,7 +82,7 @@ index 6fe4a2b..428a9b8 100644
      override var code: String {
        "ERR_CASTING_FAILED"
      }
-@@ -303,7 +303,7 @@ public struct Conversions {
+@@ -320,7 +320,7 @@ public struct Conversions {
     An exception that can be thrown by convertible types,
     when the values in given dictionary cannot be cast to specific type.
     */
@@ -91,7 +91,7 @@ index 6fe4a2b..428a9b8 100644
      override var code: String {
        "ERR_CASTING_VALUES_FAILED"
      }
-@@ -316,7 +316,7 @@ public struct Conversions {
+@@ -333,7 +333,7 @@ public struct Conversions {
     An exception that can be thrown by convertible types,
     when given dictionary is missing some required keys.
     */
@@ -100,7 +100,7 @@ index 6fe4a2b..428a9b8 100644
      override var reason: String {
        "Missing keys \(formatKeys(param)) to create \(ValueType.self) record"
      }
-@@ -325,7 +325,7 @@ public struct Conversions {
+@@ -342,7 +342,7 @@ public struct Conversions {
    /**
     An exception that is thrown when null value is tried to be cast to non-optional type.
     */

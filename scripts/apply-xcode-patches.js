@@ -1,6 +1,7 @@
 'use strict';
 
 const { execFileSync, spawnSync } = require('child_process');
+const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -49,6 +50,53 @@ const readXcodeVersion = () => {
 
 const readMacOSVersion = () => readCommand('sw_vers', ['-productVersion']);
 
+const readInstalledVersion = (packageName) => {
+    const pkgPath = path.join(ROOT, 'node_modules', ...packageName.split('/'), 'package.json');
+    try {
+        return JSON.parse(fs.readFileSync(pkgPath, 'utf8')).version;
+    } catch (error) {
+        return null;
+    }
+};
+
+const parsePatchFileName = (fileName) => {
+    const withoutExt = fileName.replace(/\.patch$/, '');
+    const lastPlus = withoutExt.lastIndexOf('+');
+    if (lastPlus <= 0) {
+        return null;
+    }
+    return {
+        packageName: withoutExt.slice(0, lastPlus).replace(/\+/g, '/'),
+        version: withoutExt.slice(lastPlus + 1),
+    };
+};
+
+const assertPatchVersionsMatch = () => {
+    const patchesDir = path.join(ROOT, 'patches');
+    const files = fs.readdirSync(patchesDir).filter((file) => file.endsWith('.patch'));
+    const mismatches = [];
+
+    for (const file of files) {
+        const parsed = parsePatchFileName(file);
+        if (!parsed) {
+            mismatches.push(`${file}: invalid patch file name`);
+            continue;
+        }
+        const installed = readInstalledVersion(parsed.packageName);
+        if (installed !== parsed.version) {
+            mismatches.push(`${file} targets ${parsed.packageName}@${parsed.version}, installed is ${installed || 'missing'}`);
+        }
+    }
+
+    if (mismatches.length > 0) {
+        console.error('[apply-xcode-patches] patch version mismatch; remake patches for the installed packages:');
+        for (const line of mismatches) {
+            console.error(`  ${line}`);
+        }
+        process.exit(1);
+    }
+};
+
 const shouldApplyPatches = () => {
     const xcodeVersion = readXcodeVersion();
     if (xcodeVersion) {
@@ -82,6 +130,7 @@ if (!decision.apply) {
 }
 
 console.log(`[apply-xcode-patches] apply (${decision.reason})`);
+assertPatchVersionsMatch();
 
 const patchPackage = path.join(ROOT, 'node_modules', 'patch-package', 'index.js');
 const result = spawnSync(process.execPath, [patchPackage, '--error-on-fail'], {
