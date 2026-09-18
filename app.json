@@ -4,15 +4,12 @@
     "slug": "fruit-quest-collector",
     "version": "1.0.0",
     "scheme": "fruitquestcollector",
-    "orientation": "default",
+    "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.venusturner.fruitquestcollector",
-      "associatedDomains": [
-        "applinks:example.onelink.me"
-      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -28,22 +25,6 @@
       "permissions": [
         "android.permission.VIBRATE",
         "android.permission.MODIFY_AUDIO_SETTINGS"
-      ],
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "autoVerify": true,
-          "data": [
-            {
-              "scheme": "https",
-              "host": "example.onelink.me"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        }
       ]
     },
     "web": {
@@ -52,7 +33,6 @@
     },
     "plugins": [
       "expo-router",
-      "expo-localization",
       [
         "expo-splash-screen",
         {
@@ -85,19 +65,7 @@
           "enableBackgroundRecording": false
         }
       ],
-      "expo-asset",
-      [
-        "react-native-appsflyer",
-        {
-          "shouldUseStrictMode": false,
-          "shouldUsePurchaseConnector": false,
-          "preferAppsFlyerBackupRules": false
-        }
-      ],
-      "./plugins/withAppsFlyerAndroidDeepLink",
-      "./plugins/withAppsFlyerIosDeepLink",
-      "./plugins/withNativeCrashReports",
-      "expo-web-browser"
+      "expo-asset"
     ],
     "extra": {
       "eas": {

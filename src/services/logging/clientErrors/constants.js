@@ -1,8 +1,0 @@
-export const MAX_PENDING_CLIENT_ERRORS = 20;
-export const MAX_CLIENT_ERROR_REPORT_BYTES = 32 * 1024;
-export const MAX_CLIENT_ERROR_BREADCRUMBS = 50;
-export const FATAL_CLIENT_ERROR_CAPTURE_WAIT_MS = 800;
-export const CLIENT_ERROR_UPLOAD_RETRY_DELAY_MS = 30 * 60 * 1000;
-
-export const CLIENT_ERRORS_LOG_DIRECTORY = 'client-errors';
-export const NATIVE_CRASHES_LOG_DIRECTORY = 'native-crashes';

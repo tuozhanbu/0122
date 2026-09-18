@@ -1,16 +1,3 @@
-import { createLogEntry } from '@/services/logging/redaction/logEntries';
-
-const LOGGER_STATE_KEY = '__APP_LOGGER_STATE__';
-const loggerState = (() => {
-    if (!globalThis[LOGGER_STATE_KEY]) {
-        globalThis[LOGGER_STATE_KEY] = {
-            receivers: new Set(),
-        };
-    }
-
-    return globalThis[LOGGER_STATE_KEY];
-})();
-
 const writeConsole = (level, args) => {
     if (level === 'error') {
         console.error(...args);
@@ -52,39 +39,10 @@ const normalizeConsolePayload = (payload) => {
     );
 };
 
-const emitLogEntry = (entry) => {
-    loggerState.receivers.forEach((receiver) => {
-        try {
-            receiver(entry);
-        } catch {
-            // File logging must never break the app flow.
-        }
-    });
-};
-
-export const registerLogReceiver = (receiver) => {
-    if (typeof receiver !== 'function') {
-        return () => { };
-    }
-
-    loggerState.receivers.add(receiver);
-    return () => {
-        loggerState.receivers.delete(receiver);
-    };
-};
-
-const createTaggedLogger = (tag, source) => {
+const createTaggedLogger = (tag) => {
     const normalizedTag = String(tag ?? '').trim() || 'App';
     const label = `[${normalizedTag}]`;
     const write = (level, message, payload) => {
-        emitLogEntry(createLogEntry({
-            level,
-            tag: normalizedTag,
-            message,
-            payload,
-            source,
-        }));
-
         if (!__DEV__) {
             return;
         }
@@ -104,6 +62,6 @@ const createTaggedLogger = (tag, source) => {
     };
 };
 
-export const createLogger = (tag) => createTaggedLogger(tag, 'appLogger');
+export const createLogger = (tag) => createTaggedLogger(tag);
 
-export const createDebugLogger = (tag) => createTaggedLogger(tag, 'debugLogger');
+export const createDebugLogger = (tag) => createTaggedLogger(tag);
