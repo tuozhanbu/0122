@@ -1,1 +1,250 @@
-{}
+{
+  "首页": {
+    "en": "Home",
+    "zh": "首页"
+  },
+  "果园": {
+    "en": "Garden",
+    "zh": "果园"
+  },
+  "收获（底部导航）": {
+    "en": "Collect",
+    "zh": "收获"
+  },
+  "收获（图鉴标题）": {
+    "en": "Collection",
+    "zh": "收获"
+  },
+  "设置": {
+    "en": "Settings",
+    "zh": "设置"
+  },
+  "每日订单": {
+    "en": "Daily Orders",
+    "zh": "每日订单"
+  },
+  "奖励：{count}经验": {
+    "en": "award: {count} ex",
+    "zh": "奖励：{count}经验"
+  },
+  "领取": {
+    "en": "receive",
+    "zh": "领取"
+  },
+  "玩家 ID:探索者": {
+    "en": "Player: Explorer",
+    "zh": "玩家 ID:探索者"
+  },
+  "Lv.{level}": {
+    "en": "Lv.{level}",
+    "zh": "Lv.{level}"
+  },
+  "收获水果": {
+    "en": "Harvest fruit",
+    "zh": "收获水果"
+  },
+  "消耗：{count} 能量": {
+    "en": "Cost: {count} Energy",
+    "zh": "消耗：{count} 能量"
+  },
+  "热带果园": {
+    "en": "Tropical Fruit Orchard",
+    "zh": "热带果园"
+  },
+  "加速": {
+    "en": "accelerate",
+    "zh": "加速"
+  },
+  "自动收获": {
+    "en": "Auto-harvest",
+    "zh": "自动收获"
+  },
+  "解锁全部水果": {
+    "en": "Unlock all fruits!",
+    "zh": "解锁全部水果"
+  },
+  "未知": {
+    "en": "Unknown",
+    "zh": "未知"
+  },
+  "普通": {
+    "en": "普通",
+    "zh": "普通"
+  },
+  "稀有": {
+    "en": "稀有",
+    "zh": "稀有"
+  },
+  "传奇": {
+    "en": "Legendary",
+    "zh": "传奇"
+  },
+  "苹果": {
+    "en": "apple",
+    "zh": "苹果"
+  },
+  "香蕉": {
+    "en": "banana",
+    "zh": "香蕉"
+  },
+  "西瓜": {
+    "en": "watermelon",
+    "zh": "西瓜"
+  },
+  "猕猴桃": {
+    "en": "kiwi",
+    "zh": "猕猴桃"
+  },
+  "草莓": {
+    "en": "strawberry",
+    "zh": "草莓"
+  },
+  "葡萄": {
+    "en": "grape",
+    "zh": "葡萄"
+  },
+  "樱桃": {
+    "en": "cherry",
+    "zh": "樱桃"
+  },
+  "橙子": {
+    "en": "orange",
+    "zh": "橙子"
+  },
+  "星辰果": {
+    "en": "star fruit",
+    "zh": "星辰果"
+  },
+  "彩虹草莓": {
+    "en": "Rainbow Strawberry",
+    "zh": "彩虹草莓"
+  },
+  "黄金苹果": {
+    "en": "Golden Apple",
+    "zh": "黄金苹果"
+  },
+  "冰晶葡萄": {
+    "en": "Ice Crystal Grape",
+    "zh": "冰晶葡萄"
+  },
+  "月光橙子": {
+    "en": "Moonlight Orange",
+    "zh": "月光橙子"
+  },
+  "银河瓜": {
+    "en": "Galaxy Melon",
+    "zh": "银河瓜"
+  },
+  "语言/Language": {
+    "en": "语言/Language",
+    "zh": "语言/Language"
+  },
+  "游戏指南": {
+    "en": "Game Guide",
+    "zh": "游戏指南"
+  },
+  "声音选项": {
+    "en": "Sound Options",
+    "zh": "声音选项"
+  },
+  "关于水果探险家": {
+    "en": "About Game",
+    "zh": "关于水果探险家"
+  },
+  "中文": {
+    "en": "中文",
+    "zh": "中文"
+  },
+  "核心玩法：": {
+    "en": "Core Gameplay:",
+    "zh": "核心玩法："
+  },
+  "消耗 5 点能量点击 “收获水果”，每次将随机获得 9 个水果。": {
+    "en": "Spend 5 energy to 'Harvest', getting 9 random fruits each time.",
+    "zh": "消耗 5 点能量点击 “收获水果”，每次将随机获得 9 个水果。"
+  },
+  "能量恢复：": {
+    "en": "Energy Regen:",
+    "zh": "能量恢复："
+  },
+  "能量每 5 秒自动恢复 1 点，上限为 100 点。": {
+    "en": "Recovers 1 energy every 5 secs, up to 100 max.",
+    "zh": "能量每 5 秒自动恢复 1 点，上限为 100 点。"
+  },
+  "水果稀有度：": {
+    "en": "Rarity:",
+    "zh": "水果稀有度："
+  },
+  "分为普通（绿色边框）、稀有（蓝色边框）、传奇（粉色边框）。集齐所有图鉴成为水果大师！": {
+    "en": "Common, Rare, and Legendary. Collect them all to be a master!",
+    "zh": "分为普通（绿色边框）、稀有（蓝色边框）、传奇（粉色边框）。集齐所有图鉴成为水果大师！"
+  },
+  "每日订单：": {
+    "en": "Daily Orders:",
+    "zh": "每日订单："
+  },
+  "在首页完成水果提交订单，可获得丰厚经验奖励，提升玩家等级。": {
+    "en": "Complete orders on the Home tab to earn EXP and level up.",
+    "zh": "在首页完成水果提交订单，可获得丰厚经验奖励，提升玩家等级。"
+  },
+  "背景音乐（BGM）": {
+    "en": "Background Music (BGM)",
+    "zh": "背景音乐（BGM）"
+  },
+  "开启或关闭果园背景音乐": {
+    "en": "Toggle garden background music",
+    "zh": "开启或关闭果园背景音乐"
+  },
+  "游戏音效（SFX）": {
+    "en": "Sound Effects (SFX)",
+    "zh": "游戏音效（SFX）"
+  },
+  "收获，按钮点击等提示音": {
+    "en": "Harvest and button click sounds",
+    "zh": "收获，按钮点击等提示音"
+  },
+  "水果探险家": {
+    "en": "Fruit Quest",
+    "zh": "水果探险家"
+  },
+  "能量不足": {
+    "en": "Not enough energy",
+    "zh": "能量不足"
+  },
+  "恢复 {count} 点能量": {
+    "en": "Restored {count} Energy",
+    "zh": "恢复 {count} 点能量"
+  },
+  "加速冷却中，还需 {count} 秒": {
+    "en": "Boost is cooling down: {count}s remaining",
+    "zh": "加速冷却中，还需 {count} 秒"
+  },
+  "能量已满": {
+    "en": "Energy is full",
+    "zh": "能量已满"
+  },
+  "自动收获已开启": {
+    "en": "Auto-harvest enabled",
+    "zh": "自动收获已开启"
+  },
+  "自动收获已关闭": {
+    "en": "Auto-harvest disabled",
+    "zh": "自动收获已关闭"
+  },
+  "x{count}": {
+    "en": "x{count}",
+    "zh": "x{count}"
+  },
+  "新发现！": {
+    "en": "New discovery!",
+    "zh": "新发现！"
+  },
+  "{fruitNames}！": {
+    "en": "{fruitNames}!",
+    "zh": "{fruitNames}！"
+  },
+  "关闭新发现提示": {
+    "en": "Close new discovery notice",
+    "zh": "关闭新发现提示"
+  }
+}

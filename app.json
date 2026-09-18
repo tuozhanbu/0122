@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "baseApp",
-    "slug": "baseApp",
+    "name": "水果探险家",
+    "slug": "fruit-quest-collector",
     "version": "1.0.0",
-    "scheme": "baseapp",
+    "scheme": "fruitquestcollector",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.yourcompany.baseapp",
+      "bundleIdentifier": "com.venusturner.fruitquestcollector",
       "associatedDomains": [
         "applinks:example.onelink.me"
       ],
@@ -18,7 +18,7 @@
       }
     },
     "android": {
-      "package": "com.yourcompany.baseapp",
+      "package": "com.venusturner.fruitquestcollector",
       "predictiveBackGestureEnabled": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",

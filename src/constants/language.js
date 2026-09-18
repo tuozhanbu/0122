@@ -1,6 +1,5 @@
 import rawSystemTranslations from '@/locales/system-language.json';
 import rawBusinessTranslations from '@/locales/business-language.json';
-import rawExampleTranslations from '@/locales/example-language.json';
 
 export const BUILTIN_LANGUAGE_VER = 1;
 
@@ -33,7 +32,6 @@ const transformBuiltInTranslations = (rawTranslations = {}) => {
 
 const BUILTIN_TRANSLATIONS = transformBuiltInTranslations({
     ...rawSystemTranslations,
-    ...rawExampleTranslations,
     ...rawBusinessTranslations,
 });
 
