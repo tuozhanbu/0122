@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import FruitQuestPageFrame from '@/components/fruitQuest/FruitQuestPageFrame';
 import useTranslation from '@/hooks/useTranslation';
 import useFruitQuestPageLayout from '@/hooks/useFruitQuestPageLayout';
@@ -9,10 +10,15 @@ import LanguageIcon from '@/assets/fruit-quest/common/icons/setting-language.svg
 import GuideIcon from '@/assets/fruit-quest/common/icons/setting-guide.svg';
 import SoundIcon from '@/assets/fruit-quest/common/icons/setting-sound.svg';
 import AboutIcon from '@/assets/fruit-quest/common/icons/setting-about.svg';
+import PrivacyIcon from '@/assets/fruit-quest/common/icons/setting-privacy.svg';
 import ChevronIcon from '@/assets/fruit-quest/common/icons/setting-chevron.svg';
 import SwitchThumb from '@/assets/fruit-quest/common/icons/switch-thumb.svg';
 
 const aboutEmblem = require('@/assets/fruit-quest/common/about-emblem.png');
+const PRIVACY_POLICY_URL = Platform.select({
+    ios: 'https://privacy.xinku168.com/agreement?type=habit7bt',
+    android: 'https://privacy.xinku168.com/agreement?type=7buhabit',
+});
 
 export default function FruitQuestSettingsScreen() {
     const { lang, t } = useTranslation();
@@ -26,12 +32,19 @@ export default function FruitQuestSettingsScreen() {
     const disableBackgroundMusic = useFruitQuestStore((state) => state.disableBackgroundMusic);
     const enableSoundEffects = useFruitQuestStore((state) => state.enableSoundEffects);
     const disableSoundEffects = useFruitQuestStore((state) => state.disableSoundEffects);
+    const router = useRouter();
     const [expandedSetting, setExpandedSetting] = useState('language');
 
     const expandLanguageSettings = useCallback(() => setExpandedSetting('language'), []);
     const expandGuideSettings = useCallback(() => setExpandedSetting('guide'), []);
     const expandSoundSettings = useCallback(() => setExpandedSetting('sound'), []);
     const expandAboutSettings = useCallback(() => setExpandedSetting('about'), []);
+    const openPrivacyPolicy = useCallback(() => {
+        if (!PRIVACY_POLICY_URL) {
+            return;
+        }
+        router.push(`/webview?url=${encodeURIComponent(PRIVACY_POLICY_URL)}`);
+    }, [router]);
     const selectChineseLanguage = useCallback(() => switchLang('zh'), [switchLang]);
     const selectEnglishLanguage = useCallback(() => switchLang('en'), [switchLang]);
 
@@ -111,6 +124,13 @@ export default function FruitQuestSettingsScreen() {
                     )}
 
                     <SettingNavigationRow
+                        icon={PrivacyIcon}
+                        label={t('隐私政策')}
+                        onPress={openPrivacyPolicy}
+                        lastRow={false}
+                    />
+
+                    <SettingNavigationRow
                         icon={AboutIcon}
                         label={t('关于水果探险家')}
                         expanded={expandedSetting === 'about'}
@@ -134,7 +154,7 @@ function SettingNavigationRow({ icon: Icon, label, expanded, onPress, lastRow })
             ]}
         >
             <View style={styles.navigationRowLabel}>
-                <Icon width={24} height={24} />
+                {Icon ? <Icon width={24} height={24} /> : <View style={styles.navigationRowIconSpacer} />}
                 <Text style={styles.navigationRowText}>{label}</Text>
             </View>
             <View style={expanded && styles.expandedChevron}>
@@ -344,6 +364,10 @@ const styles = StyleSheet.create({
     },
     enabledSwitchThumb: {
         alignSelf: 'flex-end',
+    },
+    navigationRowIconSpacer: {
+        width: 24,
+        height: 24,
     },
     aboutPanel: {
         alignItems: 'center',

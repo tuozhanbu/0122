@@ -246,5 +246,13 @@
   "关闭新发现提示": {
     "en": "Close new discovery notice",
     "zh": "关闭新发现提示"
+  },
+  "隐私政策": {
+    "en": "Privacy Policy",
+    "zh": "隐私政策"
+  },
+  "返回": {
+    "en": "Back",
+    "zh": "返回"
   }
 }
