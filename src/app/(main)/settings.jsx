@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import FruitQuestPageFrame from '@/components/fruitQuest/FruitQuestPageFrame';
 import useTranslation from '@/hooks/useTranslation';
 import useFruitQuestPageLayout from '@/hooks/useFruitQuestPageLayout';
@@ -201,13 +202,14 @@ function SoundPreferenceRow({ title, description, enabled, onEnable, onDisable }
 
 function FruitQuestAboutPanel() {
     const { t } = useTranslation();
+    const appVersion = Constants.expoConfig?.version ?? '';
 
     return (
         <View style={styles.aboutPanel}>
             <Image source={aboutEmblem} style={styles.aboutEmblem} resizeMode="contain" />
             <View style={styles.aboutTextGroup}>
                 <Text style={styles.aboutTitle}>{t('水果探险家')}</Text>
-                <Text style={styles.aboutVersion}>Fruit Quest Collector v1.0.1</Text>
+                <Text style={styles.aboutVersion}>v{appVersion}</Text>
             </View>
         </View>
     );
